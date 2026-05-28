@@ -67,10 +67,10 @@ export function Login() {
     setError('');
 
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
+        const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          // Voltamos a apontar direto para a porta do painel!
+          // Voltar a apontar diretamente para o painel!
           redirectTo: `${window.location.origin}/admin`
         }
       });
