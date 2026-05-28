@@ -1,11 +1,10 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, Navigate, useLocation } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { Loader2, ShieldCheck } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 
 export function Login() {
-  const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
 
