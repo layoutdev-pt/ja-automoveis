@@ -1,0 +1,27 @@
+@import "tailwindcss";
+
+/* 1. A LINHA MÁGICA: Diz ao Tailwind para obedecer ao botão (classe .dark) em vez do sistema operativo */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --color-ja-dark: #0a0a0a;
+  --color-ja-blue: #0055ff;
+}
+
+@layer base {
+  body {
+    background-color: #f9fafb;
+    color: var(--color-ja-dark);
+    margin: 0;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    /* Transição suave geral para quando clicas no botão */
+    @apply transition-colors duration-500 ease-in-out;
+  }
+  
+  /* Lida com a cor base da página quando está em modo escuro */
+  html.dark body {
+    background-color: #050505; 
+    color: #f3f4f6;
+  }
+}
