@@ -1,38 +1,77 @@
 import { useState, useEffect } from 'react';
-import { Navigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Loader2, ShieldCheck } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../contexts/AuthContext';
 
 export function Login() {
+  const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
 
   const [loading, setLoading] = useState(false);
-  // O estado de erro agora verifica se a página do Admin o expulsou e enviou uma mensagem
   const [error, setError] = useState(location.state?.authError || '');
 
-  // Limpar o erro da navegação para que não fique guardado se o utilizador atualizar a página (F5)
   useEffect(() => {
+    // 1. Limpa erros de navegação anteriores se atualizares a página (F5)
     if (location.state?.authError) {
       window.history.replaceState({}, document.title);
     }
-  }, [location]);
 
-  // Se já tiver sessão iniciada, redireciona logo para o painel
-  if (user) {
-    return <Navigate to="/admin" replace />;
-  }
+    // 2. O DETETIVE: Apanha erros escondidos que o Supabase/Google mandem no URL
+    const hash = window.location.hash;
+    if (hash && hash.includes('error=')) {
+      // O Supabase devolve erros na barra de endereço (ex: #error=unauthorized_client&error_description=...)
+      const params = new URLSearchParams(hash.substring(1)); // remove o '#'
+      const errDesc = params.get('error_description');
+      
+      if (errDesc) {
+        // Traduz o erro técnico para formato legível na nossa caixa vermelha
+        setError(decodeURIComponent(errDesc.replace(/\+/g, ' ')));
+      } else {
+        setError('A autenticação foi cancelada ou falhou.');
+      }
+      
+      // Limpa a barra de endereços para não ficar suja
+      window.location.hash = ''; 
+    }
+
+    // 3. Força a verificação de sessão DIRETAMENTE na fonte
+    const checkImmediateSession = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        navigate('/admin', { replace: true });
+      }
+    };
+    checkImmediateSession();
+
+    // 4. Fica à escuta ativamente! Mal o login aconteça, muda de página
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' || session) {
+        navigate('/admin', { replace: true });
+      }
+    });
+
+    return () => authListener.subscription.unsubscribe();
+  }, [location, navigate]);
+
+  // Se o contexto global do utilizador atualizar, também redireciona
+  useEffect(() => {
+    if (user) {
+      navigate('/admin', { replace: true });
+    }
+  }, [user, navigate]);
 
   const handleGoogleLogin = async () => {
     setLoading(true);
     setError('');
 
-      try {
+    try {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/login`
+          // Voltamos a apontar direto para a porta do painel!
+          redirectTo: `${window.location.origin}/admin`
         }
       });
 
@@ -40,7 +79,7 @@ export function Login() {
       
     } catch (err: any) {
       console.error('Erro ao iniciar sessão:', err);
-      setError('Não foi possível iniciar sessão com o Google. Tente novamente.');
+      setError('Não foi possível comunicar com o servidor. Tente novamente.');
       setLoading(false);
     }
   };
