@@ -36,9 +36,15 @@ export function Admin() {
   const [newAdminEmail, setNewAdminEmail] = useState('');
 
   // ================= 1. VERIFICAÇÃO RIGOROSA DE ACESSO =================
+  // ================= 1. VERIFICAÇÃO RIGOROSA DE ACESSO =================
   useEffect(() => {
     const checkAdminAccess = async () => {
-      // Se por algum motivo o utilizador desaparecer do contexto, volta ao login
+      // 1. O porteiro tem de esperar se o Supabase ainda estiver a ler o login da URL
+      if (!user && window.location.hash.includes('access_token')) {
+        return; // Fica em modo "verifyingAccess = true" à espera que a sessão carregue
+      }
+
+      // 2. Se não está a carregar nada e não há utilizador, volta para o login
       if (!user || !user.email) {
         navigate('/login');
         return;
@@ -75,7 +81,7 @@ export function Admin() {
 
     checkAdminAccess();
   }, [user, navigate, signOut]);
-
+  
   // ================= 2. CARREGAR DADOS SE AUTORIZADO =================
   useEffect(() => {
     if (!isAuthorized) return; // Não carrega dados se ainda não tiver luz verde
