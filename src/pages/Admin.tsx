@@ -41,7 +41,7 @@ export function Admin() {
     const checkAdminAccess = async () => {
       try {
         // 1. Pergunta DIRETAMENTE ao Supabase pela sessão real (ignora o delay do React)
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        const { data: { session } } = await supabase.auth.getSession();
         
         // 2. Se não houver sessão ativa
         if (!session || !session.user || !session.user.email) {
