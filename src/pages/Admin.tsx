@@ -13,7 +13,6 @@ type AdminUser = {
 };
 
 export function Admin() {
-  // Já não precisamos importar o 'user' daqui, vamos direto à fonte!
   const { signOut } = useAuth();
   const navigate = useNavigate();
   
@@ -38,38 +37,30 @@ export function Admin() {
 
   // ================= 1. VERIFICAÇÃO RIGOROSA DE ACESSO =================
   useEffect(() => {
-    const checkAdminAccess = async () => {
+    const checkAccess = async () => {
       try {
-        // 1. Pergunta DIRETAMENTE ao Supabase pela sessão real (ignora o delay do React)
+        // 1. Pergunta diretamente à base de dados
         const { data: { session } } = await supabase.auth.getSession();
-        
-        // 2. Se não houver sessão ativa
-        if (!session || !session.user || !session.user.email) {
-          // Se tiver token na URL, o Supabase ainda está a "digerir" o login. Esperamos.
-          if (window.location.hash.includes('access_token')) {
-            return; 
-          }
-          // Sem sessão e sem token = mandar para o login silenciosamente
+
+        if (!session || !session.user) {
           setVerifyingAccess(false);
           navigate('/login');
           return;
         }
 
-        // 3. Temos sessão! Vamos validar na base de dados
+        // 2. Confirma se o email está na lista VIP
         const { data, error } = await supabase
           .from('admin_users')
           .select('email')
-          .eq('email', session.user.email.toLowerCase()) // Segurança extra para as maiúsculas/minúsculas
+          .eq('email', session.user.email?.toLowerCase())
           .maybeSingle();
 
         if (error || !data) {
-          // Email não autorizado na tabela
           await supabase.auth.signOut();
           navigate('/login', { 
             state: { authError: 'Acesso Negado: O seu email não tem permissões de administrador.' } 
           });
         } else {
-          // Acesso concedido com sucesso!
           setIsAuthorized(true);
           setVerifyingAccess(false);
         }
@@ -82,21 +73,9 @@ export function Admin() {
       }
     };
 
-    // Executa a verificação assim que a página carrega
-    checkAdminAccess();
+    checkAccess();
+  }, [navigate]);
 
-    // 4. Fica à escuta de mudanças! Se o Supabase terminar de ler o login *depois* da página carregar, ele tenta de novo
-    const { data: authListener } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'SIGNED_IN') {
-        checkAdminAccess();
-      }
-    });
-
-    return () => {
-      authListener.subscription.unsubscribe();
-    };
-  }, [navigate]); // Removemos as dependências causadoras do loop infinito
-  
   // ================= 2. CARREGAR DADOS SE AUTORIZADO =================
   useEffect(() => {
     if (!isAuthorized) return; 

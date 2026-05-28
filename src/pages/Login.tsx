@@ -28,11 +28,11 @@ export function Login() {
     setLoading(true);
     setError('');
 
-    try {
+      try {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/admin`
+          redirectTo: `${window.location.origin}/login`
         }
       });
 
