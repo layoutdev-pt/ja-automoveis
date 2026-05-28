@@ -13,7 +13,8 @@ type AdminUser = {
 };
 
 export function Admin() {
-  const { user, signOut } = useAuth();
+  // Já não precisamos importar o 'user' daqui, vamos direto à fonte!
+  const { signOut } = useAuth();
   const navigate = useNavigate();
   
   // ================= ESTADOS DO PORTEIRO DE SEGURANÇA =================
@@ -36,55 +37,69 @@ export function Admin() {
   const [newAdminEmail, setNewAdminEmail] = useState('');
 
   // ================= 1. VERIFICAÇÃO RIGOROSA DE ACESSO =================
-  // ================= 1. VERIFICAÇÃO RIGOROSA DE ACESSO =================
   useEffect(() => {
     const checkAdminAccess = async () => {
-      // 1. O porteiro tem de esperar se o Supabase ainda estiver a ler o login da URL
-      if (!user && window.location.hash.includes('access_token')) {
-        return; // Fica em modo "verifyingAccess = true" à espera que a sessão carregue
-      }
-
-      // 2. Se não está a carregar nada e não há utilizador, volta para o login
-      if (!user || !user.email) {
-        navigate('/login');
-        return;
-      }
-
       try {
-        // Tenta encontrar o email na tabela de administradores
+        // 1. Pergunta DIRETAMENTE ao Supabase pela sessão real (ignora o delay do React)
+        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        
+        // 2. Se não houver sessão ativa
+        if (!session || !session.user || !session.user.email) {
+          // Se tiver token na URL, o Supabase ainda está a "digerir" o login. Esperamos.
+          if (window.location.hash.includes('access_token')) {
+            return; 
+          }
+          // Sem sessão e sem token = mandar para o login silenciosamente
+          setVerifyingAccess(false);
+          navigate('/login');
+          return;
+        }
+
+        // 3. Temos sessão! Vamos validar na base de dados
         const { data, error } = await supabase
           .from('admin_users')
           .select('email')
-          .eq('email', user.email)
+          .eq('email', session.user.email.toLowerCase()) // Segurança extra para as maiúsculas/minúsculas
           .maybeSingle();
 
         if (error || !data) {
-          // O EMAIL NÃO ESTÁ NA LISTA: Expulsa o utilizador
-          await signOut();
+          // Email não autorizado na tabela
+          await supabase.auth.signOut();
           navigate('/login', { 
             state: { authError: 'Acesso Negado: O seu email não tem permissões de administrador.' } 
           });
         } else {
-          // O EMAIL ESTÁ NA LISTA: Permite a entrada no painel
+          // Acesso concedido com sucesso!
           setIsAuthorized(true);
+          setVerifyingAccess(false);
         }
       } catch (err) {
         console.error('Erro ao verificar acesso:', err);
-        await signOut();
+        await supabase.auth.signOut();
         navigate('/login', { 
           state: { authError: 'Ocorreu um erro ao verificar as credenciais.' } 
         });
-      } finally {
-        setVerifyingAccess(false);
       }
     };
 
+    // Executa a verificação assim que a página carrega
     checkAdminAccess();
-  }, [user, navigate, signOut]);
+
+    // 4. Fica à escuta de mudanças! Se o Supabase terminar de ler o login *depois* da página carregar, ele tenta de novo
+    const { data: authListener } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_IN') {
+        checkAdminAccess();
+      }
+    });
+
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, [navigate]); // Removemos as dependências causadoras do loop infinito
   
   // ================= 2. CARREGAR DADOS SE AUTORIZADO =================
   useEffect(() => {
-    if (!isAuthorized) return; // Não carrega dados se ainda não tiver luz verde
+    if (!isAuthorized) return; 
 
     if (activeView === 'inventory') {
       fetchVehicles();
@@ -181,7 +196,6 @@ export function Admin() {
 
   // ================= RENDERIZAÇÃO CONDICIONAL (O PORTEIRO) =================
   
-  // 1. Mostrar ecrã de carregamento em ecrã inteiro enquanto verifica a lista VIP
   if (verifyingAccess) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-[#0a0a0a] flex flex-col items-center justify-center transition-colors duration-500">
@@ -191,12 +205,10 @@ export function Admin() {
     );
   }
 
-  // 2. Se a verificação terminou e não está autorizado, retorna null porque o navigate já está a correr para o expulsar
   if (!isAuthorized) {
     return null;
   }
 
-  // 3. Se passou em tudo, renderiza o painel completo
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-[#0a0a0a] flex flex-col md:flex-row pt-20 transition-colors duration-500">
       
