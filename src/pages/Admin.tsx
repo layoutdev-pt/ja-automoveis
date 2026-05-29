@@ -149,10 +149,23 @@ export function Admin() {
     }
   };
 
-  const handleDeleteAdmin = async (id: string, email: string) => {
-    if (!window.confirm(`Remover acesso a ${email}?`)) return;
-    await supabase.from('admin_users').delete().eq('id', id);
-    setAdmins(admins.filter(a => a.id !== id));
+    const handleDeleteAdmin = async (id: string, email: string) => {
+    // 1. Bloqueio imediato no front-end
+    if (email.toLowerCase() === 'ja.automoveis001@gmail.com') {
+      alert('Ação bloqueada: A conta principal do dono não pode ser removida do sistema.');
+      return;
+    }
+
+    if (!window.confirm(`Remover acesso de administrador a ${email}?`)) return;
+    
+    try {
+      const { error } = await supabase.from('admin_users').delete().eq('id', id);
+      if (error) throw error;
+      setAdmins(admins.filter(a => a.id !== id));
+    } catch (error) {
+      console.error('Erro ao remover administrador:', error);
+      alert('Ocorreu um erro ao remover o acesso.');
+    }
   };
 
   // ================= ECRÃS DE BLOQUEIO =================
@@ -300,11 +313,21 @@ export function Admin() {
                     {admins.map((admin) => (
                       <tr key={admin.id} className="hover:bg-gray-800/50">
                         <td className="py-4 px-6 font-semibold text-white">{admin.email}</td>
-                        <td className="py-4 px-6 text-right">
-                          <button onClick={() => handleDeleteAdmin(admin.id, admin.email)} className="text-gray-400 hover:text-red-400 p-2">
-                            <Trash2 size={18} />
-                          </button>
-                        </td>
+                            <td className="py-4 px-6 text-right">
+                              {admin.email.toLowerCase() !== 'ja.automoveis001@gmail.com' ? (
+                                <button 
+                                  onClick={() => handleDeleteAdmin(admin.id, admin.email)}
+                                  className="text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 transition-colors p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/30"
+                                  title="Remover Acesso"
+                                >
+                                  <Trash2 size={18} />
+                                </button>
+                              ) : (
+                                <span className="inline-block px-3 py-1 bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 text-xs font-bold rounded-lg uppercase tracking-wider">
+                                  Dono
+                                </span>
+                              )}
+                            </td>
                       </tr>
                     ))}
                   </tbody>
