@@ -2,75 +2,35 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Loader2, ShieldCheck } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { useAuth } from '../contexts/AuthContext';
 
 export function Login() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { user } = useAuth();
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(location.state?.authError || '');
 
+  // Limpa o erro ao atualizar a página
   useEffect(() => {
-    // 1. Limpa erros de navegação anteriores se atualizares a página (F5)
     if (location.state?.authError) {
       window.history.replaceState({}, document.title);
     }
 
-    // 2. O DETETIVE: Apanha erros escondidos que o Supabase/Google mandem no URL
-    const hash = window.location.hash;
-    if (hash && hash.includes('error=')) {
-      // O Supabase devolve erros na barra de endereço (ex: #error=unauthorized_client&error_description=...)
-      const params = new URLSearchParams(hash.substring(1)); // remove o '#'
-      const errDesc = params.get('error_description');
-      
-      if (errDesc) {
-        // Traduz o erro técnico para formato legível na nossa caixa vermelha
-        setError(decodeURIComponent(errDesc.replace(/\+/g, ' ')));
-      } else {
-        setError('A autenticação foi cancelada ou falhou.');
-      }
-      
-      // Limpa a barra de endereços para não ficar suja
-      window.location.hash = ''; 
-    }
-
-    // 3. Força a verificação de sessão DIRETAMENTE na fonte
-    const checkImmediateSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        navigate('/admin', { replace: true });
-      }
-    };
-    checkImmediateSession();
-
-    // 4. Fica à escuta ativamente! Mal o login aconteça, muda de página
-    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_IN' || session) {
-        navigate('/admin', { replace: true });
-      }
+    // Se já houver sessão, manda logo para o painel
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) navigate('/admin', { replace: true });
     });
-
-    return () => authListener.subscription.unsubscribe();
   }, [location, navigate]);
-
-  // Se o contexto global do utilizador atualizar, também redireciona
-  useEffect(() => {
-    if (user) {
-      navigate('/admin', { replace: true });
-    }
-  }, [user, navigate]);
 
   const handleGoogleLogin = async () => {
     setLoading(true);
     setError('');
 
     try {
-        const { error } = await supabase.auth.signInWithOAuth({
+      const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          // Voltar a apontar diretamente para o painel!
+          // Manda direto para a porta do painel
           redirectTo: `${window.location.origin}/admin`
         }
       });
@@ -86,7 +46,6 @@ export function Login() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-[#0a0a0a] flex items-center justify-center px-4 transition-colors duration-500">
-      
       <div className="max-w-md w-full bg-white dark:bg-gray-900 rounded-3xl shadow-lg border border-gray-100 dark:border-gray-800 p-8 transition-colors duration-500">
         
         <div className="text-center mb-8 flex flex-col items-center">
@@ -128,13 +87,6 @@ export function Login() {
             )}
           </button>
         </div>
-        
-        <div className="mt-8 text-center">
-          <p className="text-xs text-gray-400 dark:text-gray-500 transition-colors duration-500">
-            Apenas os endereços de correio eletrónico registados no painel de administração terão permissão de acesso.
-          </p>
-        </div>
-
       </div>
     </div>
   );
