@@ -9,7 +9,6 @@ export function VehicleDetails() {
   const [vehicle, setVehicle] = useState<Vehicle | null>(null);
   const [loading, setLoading] = useState(true);
   
-  // Estado para o slider da galeria principal
   const [currentSlide, setCurrentSlide] = useState(0);
 
   useEffect(() => {
@@ -30,7 +29,7 @@ export function VehicleDetails() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-white dark:bg-[#0a0a0a] flex items-center justify-center pt-20 transition-colors duration-500">
+      <div className="min-h-screen bg-gray-50 dark:bg-[#0a0a0a] flex items-center justify-center pt-20 transition-colors duration-500">
         <Loader2 size={40} className="text-ja-blue animate-spin" />
       </div>
     );
@@ -38,7 +37,7 @@ export function VehicleDetails() {
 
   if (!vehicle) {
     return (
-      <div className="min-h-screen bg-white dark:bg-[#0a0a0a] flex flex-col items-center justify-center pt-20 transition-colors duration-500">
+      <div className="min-h-screen bg-gray-50 dark:bg-[#0a0a0a] flex flex-col items-center justify-center pt-20 transition-colors duration-500">
         <h2 className="text-2xl font-bold text-ja-dark dark:text-white transition-colors duration-500">Viatura não encontrada</h2>
         <Link to="/stand" className="text-ja-blue hover:text-blue-700 dark:hover:text-blue-400 mt-4 transition-colors duration-300">
           Voltar ao Inventário
@@ -49,12 +48,11 @@ export function VehicleDetails() {
 
   const formatPrice = (price: number) => new Intl.NumberFormat('pt-PT', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(price);
 
-  // Lógica de distribuição das imagens
   const fotoPerfil = vehicle.fotos[0];
-  const destaqueTop = vehicle.fotos[1] || fotoPerfil; // Fallback se não existir
-  const destaqueBottom = vehicle.fotos[2] || fotoPerfil; // Fallback se não existir
+  const destaqueTop = vehicle.fotos[1] || fotoPerfil; 
+  const destaqueBottom = vehicle.fotos[2] || fotoPerfil; 
   const galeriaRaw = vehicle.fotos.slice(3).filter(f => f !== '');
-  const galeria = galeriaRaw.length > 0 ? galeriaRaw : [fotoPerfil]; // Fallback para a foto principal
+  const galeria = galeriaRaw.length > 0 ? galeriaRaw : [fotoPerfil]; 
 
   const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % galeria.length);
   const prevSlide = () => setCurrentSlide((prev) => (prev - 1 + galeria.length) % galeria.length);
@@ -63,53 +61,49 @@ export function VehicleDetails() {
     <div className="min-h-screen bg-white dark:bg-[#0a0a0a] pt-24 pb-20 transition-colors duration-500">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
-        {/* Breadcrumb e Voltar */}
         <Link to="/stand" className="inline-flex items-center text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-ja-dark dark:hover:text-white mb-8 transition-colors duration-500">
           <ArrowLeft size={16} className="mr-2" /> Voltar ao Inventário
         </Link>
 
-        {/* Galeria de Topo (Estrutura Sólida e Bloqueada) */}
+        {/* GALERIA PREMIUM */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-16">
           
-          {/* 1. Modal Maior (Esquerda) - Slider da Galeria */}
-          {/* As dimensões rigorosas aqui garantem que a imagem não esmaga os textos abaixo */}
-          <div className="lg:col-span-2 relative aspect-[4/3] lg:aspect-auto lg:h-[600px] rounded-3xl overflow-hidden bg-gray-100 dark:bg-gray-900 group shadow-sm border border-gray-100 dark:border-gray-800 transition-colors duration-500">
-            
-            {/* O "absolute inset-0" cola a imagem aos cantos da div, sem permitir que vaze */}
+          {/* Modal Maior (Slider) */}
+          <div className="lg:col-span-2 relative w-full h-[400px] lg:h-[500px] rounded-2xl overflow-hidden bg-gray-100 dark:bg-gray-900 group shadow-sm border border-gray-200/50 dark:border-gray-800 transition-colors duration-500">
             <img 
               src={galeria[currentSlide]} 
               alt={`${vehicle.marca} galeria ${currentSlide + 1}`} 
               className="absolute inset-0 w-full h-full object-cover transition-transform duration-700" 
             />
             
-            {/* Controlos do Slider */}
             {galeria.length > 1 && (
               <>
-                <button onClick={prevSlide} className="absolute left-4 top-1/2 -translate-y-1/2 z-20 bg-black/30 hover:bg-black/60 text-white p-3 rounded-full backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-all duration-300">
+                {/* Setas Elegantes */}
+                <button onClick={prevSlide} className="absolute left-6 top-1/2 -translate-y-1/2 z-20 w-12 h-12 flex items-center justify-center bg-black/40 hover:bg-black/70 text-white rounded-full backdrop-blur-md opacity-0 group-hover:opacity-100 transition-all duration-300 border border-white/10">
                   <ChevronLeft size={24} />
                 </button>
-                <button onClick={nextSlide} className="absolute right-4 top-1/2 -translate-y-1/2 z-20 bg-black/30 hover:bg-black/60 text-white p-3 rounded-full backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-all duration-300">
+                <button onClick={nextSlide} className="absolute right-6 top-1/2 -translate-y-1/2 z-20 w-12 h-12 flex items-center justify-center bg-black/40 hover:bg-black/70 text-white rounded-full backdrop-blur-md opacity-0 group-hover:opacity-100 transition-all duration-300 border border-white/10">
                   <ChevronRight size={24} />
                 </button>
                 
-                {/* Contador Top-Right */}
-                <div className="absolute top-4 right-4 z-20 bg-black/50 text-white text-xs font-bold px-4 py-2 rounded-full backdrop-blur-md">
+                {/* Contador Clean */}
+                <div className="absolute top-6 right-6 z-20 bg-black/40 text-white text-xs font-bold px-4 py-2 rounded-full backdrop-blur-md border border-white/10">
                   {currentSlide + 1} / {galeria.length}
                 </div>
 
-                {/* Miniaturas Bottom-Left */}
-                <div className="absolute bottom-4 left-4 z-20 flex gap-2">
+                {/* Ilha de Miniaturas em Vidro */}
+                <div className="absolute bottom-6 left-6 z-20 flex gap-3 p-2 bg-black/40 backdrop-blur-md rounded-2xl border border-white/10">
                   {galeria.slice(0, 4).map((img, idx) => (
                     <button 
                       key={idx}
                       onClick={() => setCurrentSlide(idx)}
-                      className={`w-16 h-12 rounded-lg overflow-hidden border-2 ${currentSlide === idx ? 'border-white shadow-lg' : 'border-transparent opacity-60 hover:opacity-100'} transition-all`}
+                      className={`w-20 h-14 rounded-xl overflow-hidden border-2 ${currentSlide === idx ? 'border-white shadow-lg scale-105' : 'border-transparent opacity-60 hover:opacity-100'} transition-all duration-300`}
                     >
                       <img src={img} className="w-full h-full object-cover" />
                     </button>
                   ))}
                   {galeria.length > 4 && (
-                    <div className="w-16 h-12 rounded-lg overflow-hidden bg-black/60 flex items-center justify-center text-white text-xs font-bold backdrop-blur-md border-2 border-transparent cursor-pointer" onClick={() => setCurrentSlide(4)}>
+                    <div className="w-20 h-14 rounded-xl overflow-hidden bg-black/60 flex items-center justify-center text-white text-sm font-bold border-2 border-transparent cursor-pointer hover:bg-black/80 transition-all" onClick={() => setCurrentSlide(4)}>
                       +{galeria.length - 4}
                     </div>
                   )}
@@ -118,22 +112,21 @@ export function VehicleDetails() {
             )}
           </div>
 
-          {/* 2 e 3. Modais Menores (Direita) */}
-          <div className="hidden lg:flex flex-col gap-4 lg:h-[600px]">
-            <div className="flex-1 relative rounded-3xl overflow-hidden group bg-gray-100 dark:bg-gray-900 border border-gray-100 dark:border-gray-800 transition-colors duration-500 shadow-sm">
+          {/* Modais Menores (Direita) */}
+          <div className="hidden lg:flex flex-col gap-4 h-[500px]">
+            <div className="flex-1 relative rounded-2xl overflow-hidden group bg-gray-100 dark:bg-gray-900 border border-gray-200/50 dark:border-gray-800 transition-colors duration-500 shadow-sm">
               <img src={destaqueTop} alt="Destaque Superior" className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
             </div>
-            <div className="flex-1 relative rounded-3xl overflow-hidden group bg-gray-100 dark:bg-gray-900 border border-gray-100 dark:border-gray-800 transition-colors duration-500 shadow-sm">
+            <div className="flex-1 relative rounded-2xl overflow-hidden group bg-gray-100 dark:bg-gray-900 border border-gray-200/50 dark:border-gray-800 transition-colors duration-500 shadow-sm">
               <img src={destaqueBottom} alt="Destaque Inferior" className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
             </div>
           </div>
 
         </div>
 
-        {/* Detalhes e Caixa de Contacto */}
+        {/* Detalhes da Viatura */}
         <div className="flex flex-col lg:flex-row gap-8 lg:gap-16 items-start">
           
-          {/* Coluna Principal (Esquerda) */}
           <div className="lg:w-2/3 w-full">
             <h1 className="text-4xl font-bold text-ja-dark dark:text-white tracking-tight mb-2 transition-colors duration-500">
               {vehicle.marca} {vehicle.modelo}
@@ -142,12 +135,10 @@ export function VehicleDetails() {
               {vehicle.versao}
             </p>
             
-            {/* Descrição Dinâmica do Banco de Dados */}
             <div className="whitespace-pre-line text-gray-600 dark:text-gray-300 leading-relaxed text-lg mb-12 transition-colors duration-500">
               {(vehicle as any).descricao || 'Uma viatura meticulosamente inspecionada e preparada para lhe oferecer a melhor experiência de condução. Entre em contacto para saber todos os detalhes deste modelo.'}
             </div>
 
-            {/* Key Specifications */}
             <h3 className="text-2xl font-bold text-ja-dark dark:text-white mb-6 border-b border-gray-100 dark:border-gray-800 pb-4 transition-colors duration-500">
               Especificações Chave
             </h3>
@@ -175,12 +166,10 @@ export function VehicleDetails() {
                 </span>
               </div>
             </div>
-
           </div>
 
-          {/* Coluna Lateral - Nova Box Clean (Direita) */}
           <div className="lg:w-1/3 w-full">
-            <div className="bg-gray-50 dark:bg-gray-900 p-8 rounded-3xl border border-gray-100 dark:border-gray-800 sticky top-28 transition-colors duration-500 shadow-sm">
+            <div className="bg-white dark:bg-gray-900 p-8 rounded-2xl border border-gray-100 dark:border-gray-800 sticky top-28 transition-colors duration-500 shadow-sm">
               <div className="mb-6">
                 <span className="block text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2 transition-colors duration-500">
                   Preço Fixo
@@ -190,7 +179,7 @@ export function VehicleDetails() {
                 </span>
               </div>
 
-              <div className="w-full h-px bg-gray-200 dark:bg-gray-800 my-6 transition-colors duration-500"></div>
+              <div className="w-full h-px bg-gray-100 dark:bg-gray-800 my-6 transition-colors duration-500"></div>
 
               <h4 className="text-xl font-bold text-ja-dark dark:text-white mb-3 transition-colors duration-500">
                 Tem interesse nesta viatura?

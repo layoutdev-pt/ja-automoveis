@@ -155,9 +155,20 @@ return (
                   className="w-full py-2.5 px-3 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:ring-2 focus:ring-ja-blue/20 bg-white dark:bg-gray-800 text-ja-dark dark:text-white outline-none transition-colors duration-500"
                 >
                   <option value="">Todas</option>
-                  <option value="Mercedes-Benz">Mercedes-Benz</option>
+                  <option value="Audi">Audi</option>
                   <option value="BMW">BMW</option>
+                  <option value="Citroën">Citroën</option>
+                  <option value="Dacia">Dacia</option>
+                  <option value="Ford">Ford</option>
+                  <option value="Kia">Kia</option>
+                  <option value="Mercedes-Benz">Mercedes-Benz</option>
+                  <option value="Nissan">Nissan</option>
+                  <option value="Peugeot">Peugeot</option>
                   <option value="Renault">Renault</option>
+                  <option value="Seat">Seat</option>
+                  <option value="Toyota">Toyota</option>
+                  <option value="Volkswagen">Volkswagen</option>
+                  <option value="Volvo">Volvo</option>
                 </select>
               </div>
 
