@@ -301,33 +301,37 @@ export function Admin() {
                 </div>
               )}
 
-              <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden">
+              <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 overflow-hidden transition-colors duration-500">
                 <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="bg-gray-50 dark:bg-gray-800/50 border-b border-gray-100 dark:border-gray-800">
-                      <th className="py-4 px-6 text-sm font-semibold text-gray-300">Utilizador</th>
-                      <th className="py-4 px-6 text-sm font-semibold text-gray-300 text-right">Ações</th>
+                    <tr className="bg-gray-50 dark:bg-gray-800/50 border-b border-gray-100 dark:border-gray-800 transition-colors duration-500">
+                      <th className="py-4 px-6 text-sm font-semibold text-gray-600 dark:text-gray-300 transition-colors">Utilizador</th>
+                      <th className="py-4 px-6 text-sm font-semibold text-gray-600 dark:text-gray-300 text-right transition-colors">Ações</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                  <tbody className="divide-y divide-gray-100 dark:divide-gray-800 transition-colors duration-500">
                     {admins.map((admin) => (
-                      <tr key={admin.id} className="hover:bg-gray-800/50">
-                        <td className="py-4 px-6 font-semibold text-white">{admin.email}</td>
-                            <td className="py-4 px-6 text-right">
-                              {admin.email.toLowerCase() !== 'ja.automoveis001@gmail.com' ? (
-                                <button 
-                                  onClick={() => handleDeleteAdmin(admin.id, admin.email)}
-                                  className="text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 transition-colors p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/30"
-                                  title="Remover Acesso"
-                                >
-                                  <Trash2 size={18} />
-                                </button>
-                              ) : (
-                                <span className="inline-block px-3 py-1 bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 text-xs font-bold rounded-lg uppercase tracking-wider">
-                                  Dono
-                                </span>
-                              )}
-                            </td>
+                      <tr key={admin.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors duration-300">
+                        
+                        {/* AQUI ESTAVA O PROBLEMA: Agora usa text-ja-dark no claro e text-white no escuro */}
+                        <td className="py-4 px-6 font-semibold text-ja-dark dark:text-white transition-colors">
+                          {admin.email}
+                        </td>
+                        
+                        <td className="py-4 px-6 text-right">
+                          {admin.email.toLowerCase() !== 'ja.automoveis001@gmail.com' ? (
+                            <button 
+                              onClick={() => handleDeleteAdmin(admin.id, admin.email)} 
+                              className="text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/30"
+                            >
+                              <Trash2 size={18} />
+                            </button>
+                          ) : (
+                            <span className="inline-block px-3 py-1 bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 text-xs font-bold rounded-lg uppercase tracking-wider transition-colors">
+                              Dono
+                            </span>
+                          )}
+                        </td>
                       </tr>
                     ))}
                   </tbody>
