@@ -88,6 +88,7 @@ export function Header() {
           <NavLink to="/" className={navLinkClasses}>Home</NavLink>
           <NavLink to="/stand" className={navLinkClasses}>Stand</NavLink>
           <NavLink to="/importacao" className={navLinkClasses}>Importação</NavLink>
+          <NavLink to="/sobre" className={navLinkClasses}>Sobre Nós</NavLink>
           <NavLink to="/contactos" className={navLinkClasses}>Contactos</NavLink>
         </nav>
 
