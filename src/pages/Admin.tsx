@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, Plus, Edit, Trash2, Car, Loader2, Users, UserPlus } from 'lucide-react';
+import { LogOut, Plus, Edit, Trash2, Car, Loader2, Users, Shield, UserPlus } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import type { Vehicle } from '../types';
 import { VehicleForm } from '../components/admin/VehicleForm';
@@ -18,6 +18,9 @@ export function Admin() {
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [verifyingAccess, setVerifyingAccess] = useState(true);
   const [activeView, setActiveView] = useState<'inventory' | 'users'>('inventory');
+  
+  // Guardamos o email de quem está logado para dar os super poderes ao Dono
+  const [currentUserEmail, setCurrentUserEmail] = useState('');
 
   // ================= ESTADOS DO INVENTÁRIO =================
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
@@ -27,9 +30,12 @@ export function Admin() {
 
   // ================= ESTADOS DOS UTILIZADORES =================
   const [admins, setAdmins] = useState<AdminUser[]>([]);
-  const [, setLoadingAdmins] = useState(false);
+  const [loadingAdmins, setLoadingAdmins] = useState(false);
   const [isAddingAdmin, setIsAddingAdmin] = useState(false);
   const [newAdminEmail, setNewAdminEmail] = useState('');
+
+  // Verifica se quem está logado é o dono principal
+  const isOwner = currentUserEmail === 'ja.automoveis001@gmail.com';
 
   // ================= 1. VERIFICAÇÃO DIRETA NA FONTE =================
   useEffect(() => {
@@ -40,21 +46,19 @@ export function Admin() {
         const { data: { session } } = await supabase.auth.getSession();
 
         if (!session || !session.user) {
-          // Se não há sessão, verifica se o URL está a carregar o token do Google
           if (window.location.hash.includes('access_token')) {
-            return; // Fica a aguardar que o Supabase leia o URL
+            return;
           }
-          if (isMounted) {
-            navigate('/login', { replace: true });
-          }
+          if (isMounted) navigate('/login', { replace: true });
           return;
         }
 
-        // Vai à base de dados ver se o email está na lista VIP
+        const userEmail = session.user.email?.toLowerCase() || '';
+
         const { data, error } = await supabase
           .from('admin_users')
           .select('email')
-          .eq('email', session.user.email?.toLowerCase() || '')
+          .eq('email', userEmail)
           .maybeSingle();
 
         if (error || !data) {
@@ -67,6 +71,7 @@ export function Admin() {
         } else {
           if (isMounted) {
             setIsAuthorized(true);
+            setCurrentUserEmail(userEmail);
             setVerifyingAccess(false);
           }
         }
@@ -79,7 +84,6 @@ export function Admin() {
 
     checkAccess();
 
-    // Escuta eventos em tempo real do login
     const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN' && session) {
         checkAccess();
@@ -140,6 +144,12 @@ export function Admin() {
     e.preventDefault();
     if (!newAdminEmail.trim()) return;
 
+    // Bloqueio extra no código
+    if (!isOwner) {
+      alert('Ação bloqueada: Apenas o Dono pode adicionar novos administradores.');
+      return;
+    }
+
     const { data, error } = await supabase.from('admin_users').insert([{ email: newAdminEmail.toLowerCase() }]).select().single();
     if (error && error.code === '23505') alert('Este email já é administrador.');
     else if (data) {
@@ -149,23 +159,22 @@ export function Admin() {
     }
   };
 
-    const handleDeleteAdmin = async (id: string, email: string) => {
-    // 1. Bloqueio imediato no front-end
-    if (email.toLowerCase() === 'ja.automoveis001@gmail.com') {
-      alert('Ação bloqueada: A conta principal do dono não pode ser removida do sistema.');
+  const handleDeleteAdmin = async (id: string, email: string) => {
+    // Bloqueio extra no código
+    if (!isOwner) {
+      alert('Ação bloqueada: Apenas o Dono pode remover administradores.');
       return;
     }
 
-    if (!window.confirm(`Remover acesso de administrador a ${email}?`)) return;
-    
-    try {
-      const { error } = await supabase.from('admin_users').delete().eq('id', id);
-      if (error) throw error;
-      setAdmins(admins.filter(a => a.id !== id));
-    } catch (error) {
-      console.error('Erro ao remover administrador:', error);
-      alert('Ocorreu um erro ao remover o acesso.');
+    if (email.toLowerCase() === 'ja.automoveis001@gmail.com') {
+      alert('Ação bloqueada: A conta principal do dono não pode ser removida.');
+      return;
     }
+
+    if (!window.confirm(`Remover acesso a ${email}?`)) return;
+    
+    await supabase.from('admin_users').delete().eq('id', id);
+    setAdmins(admins.filter(a => a.id !== id));
   };
 
   // ================= ECRÃS DE BLOQUEIO =================
@@ -237,7 +246,7 @@ export function Admin() {
                       </thead>
                       <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                         {loading ? (
-                          <tr><td colSpan={5} className="py-12 text-center"><Loader2 size={32} className="mx-auto animate-spin mb-2" /></td></tr>
+                          <tr><td colSpan={5} className="py-12 text-center"><Loader2 size={32} className="mx-auto animate-spin text-ja-blue mb-2" /></td></tr>
                         ) : vehicles.map((vehicle) => (
                           <tr key={vehicle.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
                             <td className="py-4 px-6">
@@ -284,19 +293,20 @@ export function Admin() {
                   <h1 className="text-2xl font-bold text-ja-dark dark:text-white">Acessos de Administrador</h1>
                   <p className="text-gray-500 text-sm mt-1">Controle quem tem acesso a este painel.</p>
                 </div>
-                {!isAddingAdmin && (
+                {/* O botão de adicionar só aparece para o Dono */}
+                {!isAddingAdmin && isOwner && (
                   <button onClick={() => setIsAddingAdmin(true)} className="flex items-center gap-2 bg-ja-dark hover:bg-ja-blue text-white px-5 py-2.5 rounded-xl font-semibold shadow-sm">
                     <UserPlus size={20} /> Conceder Acesso
                   </button>
                 )}
               </div>
 
-              {isAddingAdmin && (
-                <div className="bg-white dark:bg-gray-900 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 mb-8">
+              {isAddingAdmin && isOwner && (
+                <div className="bg-white dark:bg-gray-900 p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 mb-8 transition-colors duration-500">
                   <form onSubmit={handleAddAdmin} className="flex flex-col sm:flex-row gap-4">
-                    <input type="email" required value={newAdminEmail} onChange={(e) => setNewAdminEmail(e.target.value)} placeholder="Email do novo utilizador" className="flex-1 px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 outline-none text-white" />
-                    <button type="button" onClick={() => setIsAddingAdmin(false)} className="px-6 py-3 font-semibold text-gray-400 hover:bg-gray-800 rounded-xl">Cancelar</button>
-                    <button type="submit" className="bg-ja-blue hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-xl">Adicionar</button>
+                    <input type="email" required value={newAdminEmail} onChange={(e) => setNewAdminEmail(e.target.value)} placeholder="Email do novo utilizador" className="flex-1 px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 outline-none text-ja-dark dark:text-white transition-colors duration-500" />
+                    <button type="button" onClick={() => setIsAddingAdmin(false)} className="px-6 py-3 font-semibold text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors duration-300">Cancelar</button>
+                    <button type="submit" className="bg-ja-blue hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-xl transition-colors duration-300">Adicionar</button>
                   </form>
                 </div>
               )}
@@ -312,24 +322,26 @@ export function Admin() {
                   <tbody className="divide-y divide-gray-100 dark:divide-gray-800 transition-colors duration-500">
                     {admins.map((admin) => (
                       <tr key={admin.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors duration-300">
-                        
-                        {/* AQUI ESTAVA O PROBLEMA: Agora usa text-ja-dark no claro e text-white no escuro */}
                         <td className="py-4 px-6 font-semibold text-ja-dark dark:text-white transition-colors">
                           {admin.email}
                         </td>
-                        
                         <td className="py-4 px-6 text-right">
-                          {admin.email.toLowerCase() !== 'ja.automoveis001@gmail.com' ? (
+                          {admin.email.toLowerCase() === 'ja.automoveis001@gmail.com' ? (
+                            <span className="inline-block px-3 py-1 bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 text-xs font-bold rounded-lg uppercase tracking-wider transition-colors">
+                              Dono
+                            </span>
+                          ) : isOwner ? (
+                            // O botão de apagar só aparece se for um utilizador comum E quem estiver logado for o dono
                             <button 
                               onClick={() => handleDeleteAdmin(admin.id, admin.email)} 
                               className="text-gray-400 hover:text-red-600 dark:hover:text-red-400 transition-colors p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/30"
+                              title="Remover Acesso"
                             >
                               <Trash2 size={18} />
                             </button>
                           ) : (
-                            <span className="inline-block px-3 py-1 bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 text-xs font-bold rounded-lg uppercase tracking-wider transition-colors">
-                              Dono
-                            </span>
+                            // Se for um funcionário a ver a lista, não lhe mostramos nenhum botão
+                            <span className="text-gray-400 dark:text-gray-600 text-sm">-</span>
                           )}
                         </td>
                       </tr>
