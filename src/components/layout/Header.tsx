@@ -108,13 +108,7 @@ export function Header() {
             </div>
           </button>
 
-          <Link 
-            to="/admin" 
-            className="flex items-center gap-2 bg-ja-dark hover:bg-ja-blue text-white px-5 py-2.5 rounded-full text-sm font-semibold transition-colors shadow-sm"
-          >
-            <User size={16} />
-            <span className="hidden sm:inline">Admin</span>
-          </Link>
+
         </div>
 
       </div>
