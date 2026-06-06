@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, Plus, Edit, Trash2, Car, Loader2, Users, Shield, UserPlus } from 'lucide-react';
+import { LogOut, Plus, Edit, Trash2, Car, Loader2, Users, UserPlus } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import type { Vehicle } from '../types';
 import { VehicleForm } from '../components/admin/VehicleForm';
@@ -320,7 +320,9 @@ export function Admin() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100 dark:divide-gray-800 transition-colors duration-500">
-                    {admins.map((admin) => (
+                    {loadingAdmins ? (
+                      <tr><td colSpan={2} className="py-8 text-center"><Loader2 size={32} className="mx-auto animate-spin text-ja-blue mb-2" /></td></tr>
+                    ) : admins.map((admin) => (
                       <tr key={admin.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors duration-300">
                         <td className="py-4 px-6 font-semibold text-ja-dark dark:text-white transition-colors">
                           {admin.email}
