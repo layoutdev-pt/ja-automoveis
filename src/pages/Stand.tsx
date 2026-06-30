@@ -95,7 +95,7 @@ const TRANSMISSOES = ['Automática', 'Manual'];
 const COMBUSTIVEIS = ['Diesel', 'Eléctrico', 'Gasolina', 'Híbrido (Gasolina)', 'Híbrido (Diesel)'];
 
 const currentYear = new Date().getFullYear();
-const ANOS = Array.from({ length: currentYear - 1999 }, (_, i) => (currentYear - i).toString());
+const ANOS = Array.from({ length: currentYear - 1899 }, (_, i) => (currentYear - i).toString());
 const PRECOS = ['5000', '10000', '15000', '20000', '25000', '30000', '40000', '50000', '75000', '100000'];
 const QUILOMETROS = ['0', '10000', '25000', '50000', '75000', '100000', '125000', '150000', '200000'];
 
