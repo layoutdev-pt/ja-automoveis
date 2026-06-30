@@ -1,12 +1,21 @@
 import { useState, useEffect } from 'react';
 import { NavLink, Link } from 'react-router-dom';
+
+{/*
+
 import { Moon, Sun,  } from 'lucide-react';
+
+*/}
 
 export function Header() {
   const [isScrolled, setIsScrolled] = useState(false);
   
+  {/*
+
   // Estado para controlar o Dark Mode
   const [isDark, setIsDark] = useState(false);
+
+  */}
 
   // Efeito para o Scroll
   useEffect(() => {
@@ -16,6 +25,9 @@ export function Header() {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+
+  {/*
 
   // Efeito para carregar o tema guardado e aplicar a classe 'dark' no HTML
   useEffect(() => {
@@ -28,6 +40,10 @@ export function Header() {
     }
   }, []);
 
+
+
+
+  
   // Função para alternar o tema
   const toggleTheme = () => {
     if (isDark) {
@@ -40,6 +56,8 @@ export function Header() {
       setIsDark(true);
     }
   };
+
+*/}
 
   // Adaptação das cores do link para suportar o modo escuro (dark:text-gray-300)
   const navLinkClasses = ({ isActive }: { isActive: boolean }) => 
@@ -95,7 +113,7 @@ export function Header() {
         {/* 3. Zona Direita (Ações) */}
         <div className="flex-1 flex justify-end items-center gap-4">
           
-          {/* Botão de Dark Mode Animado */}
+          {/* Botão de Dark Mode Animado 
           <button 
             onClick={toggleTheme}
             className="relative p-2 text-gray-500 dark:text-gray-400 hover:text-ja-blue dark:hover:text-ja-blue rounded-full transition-colors overflow-hidden flex items-center justify-center w-10 h-10"
@@ -108,7 +126,7 @@ export function Header() {
               <Sun size={20} />
             </div>
           </button>
-
+            */}
 
         </div>
 
