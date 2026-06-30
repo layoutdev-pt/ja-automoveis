@@ -5,7 +5,7 @@ import { WhatsAppIcon } from '../ui/WhatsAppIcon';
 export function WhatsAppButton() {
   const [isOpen, setIsOpen] = useState(false);
   
-  const phoneNumber = "351900000000"; // Substitui pelo número real
+  const phoneNumber = "+351 961 650 396"; // Substitui pelo número real
   const defaultMessage = "Olá! Gostaria de obter mais informações sobre os veículos.";
   const waLink = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(defaultMessage)}`;
 

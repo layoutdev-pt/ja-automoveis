@@ -99,7 +99,7 @@ export function Contactos() {
                 </div>
                 <div>
                   <h4 className="font-semibold text-ja-dark dark:text-white transition-colors duration-500">Telefone</h4>
-                  <p className="text-gray-500 dark:text-gray-400 mt-1 text-sm transition-colors duration-500">+351 900 000 000</p>
+                  <p className="text-gray-500 dark:text-gray-400 mt-1 text-sm transition-colors duration-500">+351 961 650 396</p>
                 </div>
               </div>
 
@@ -109,7 +109,7 @@ export function Contactos() {
                 </div>
                 <div>
                   <h4 className="font-semibold text-ja-dark dark:text-white transition-colors duration-500">Email</h4>
-                  <p className="text-gray-500 dark:text-gray-400 mt-1 text-sm transition-colors duration-500">geral@jaautomoveis.pt</p>
+                  <p className="text-gray-500 dark:text-gray-400 mt-1 text-sm transition-colors duration-500">jaautomoveis553@gmail.com</p>
                 </div>
               </div>
 
@@ -128,7 +128,7 @@ export function Contactos() {
 
             <div className="mt-12">
               <a 
-                href="https://wa.me/351900000000" 
+                href="https://api.whatsapp.com/send/?phone=351961650396&text=Olá%21+Gostaria+de+obter+mais+informações+sobre+os+veículos.&type=phone_number&app_absent=0" 
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="w-full flex items-center justify-center gap-3 bg-[#25D366] hover:bg-[#1ebd57] text-white font-bold py-4 rounded-xl transition-colors text-lg shadow-sm"

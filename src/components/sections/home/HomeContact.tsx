@@ -38,7 +38,7 @@ export function HomeContact() {
                 <div>
                   <h4 className="font-semibold text-ja-dark dark:text-white transition-colors duration-500">Telefone</h4>
                   <p className="text-gray-500 dark:text-gray-400 mt-1 transition-colors duration-500">
-                    +351 900 000 000
+                    +351 961 650 396
                   </p>
                 </div>
               </div>
@@ -51,7 +51,7 @@ export function HomeContact() {
                 <div>
                   <h4 className="font-semibold text-ja-dark dark:text-white transition-colors duration-500">Email</h4>
                   <p className="text-gray-500 dark:text-gray-400 mt-1 transition-colors duration-500">
-                    geral@jaautomoveis.pt
+                    jaautomoveis553@gmail.com
                   </p>
                 </div>
               </div>
