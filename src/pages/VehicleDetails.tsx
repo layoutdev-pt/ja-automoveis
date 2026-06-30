@@ -10,8 +10,9 @@ export function VehicleDetails() {
   const [loading, setLoading] = useState(true);
   
   const [currentSlide, setCurrentSlide] = useState(0);
+  // Novo estado que define onde a janela de miniaturas começa
+  const [thumbStart, setThumbStart] = useState(0);
   
-  // Estado para controlar as Abas (Tabs)
   const [activeTab, setActiveTab] = useState<'equipamento' | 'descricao'>('equipamento');
 
   useEffect(() => {
@@ -41,31 +42,61 @@ export function VehicleDetails() {
   const galeriaRaw = vehicle.fotos.slice(3).filter(f => f !== '');
   const galeria = galeriaRaw.length > 0 ? galeriaRaw : [fotoPerfil]; 
 
-  const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % galeria.length);
-  const prevSlide = () => setCurrentSlide((prev) => (prev - 1 + galeria.length) % galeria.length);
-
-  // Função auxiliar para renderizar os blocos de equipamento a partir de texto com vírgulas
-  const renderEquipList = (title: string, dataString?: string) => {
-    if (!dataString) return null;
-    const items = dataString.split(',').map(item => item.trim()).filter(item => item.length > 0);
-    if (items.length === 0) return null;
-
-    return (
-      <div className="bg-gray-50 dark:bg-[#18181b] rounded-2xl p-6 md:p-8 mb-6 border border-gray-100 dark:border-gray-800/60 shadow-sm transition-colors duration-500">
-        <h4 className="text-xl font-bold text-ja-dark dark:text-white mb-6">{title}</h4>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-8">
-          {items.map((item, idx) => (
-            <div key={idx} className="flex items-center gap-3">
-              <div className="w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center flex-shrink-0">
-                <Check size={12} className="text-white font-bold" />
-              </div>
-              <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{item}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
+  // Função centralizada para navegar nas fotos aplicando as regras inteligentes
+  const navigateToSlide = (newSlide: number, directionHint?: 'forward' | 'backward') => {
+    setCurrentSlide(newSlide);
+    if (galeria.length <= 4) return;
+    
+    setThumbStart(prevStart => {
+        let newStart = prevStart;
+        
+        // Descobre em que "slot" (0 a 3) a nova foto iria cair
+        let slot = newSlide - prevStart;
+        if (slot < 0) slot += galeria.length;
+        
+        // Se clicar diretamente numa miniatura, adivinhamos a direção baseada no slot
+        let direction = directionHint;
+        if (!direction) {
+            if (slot > 2) direction = 'forward';
+            else if (slot < 1) direction = 'backward';
+            else direction = 'forward';
+        }
+        
+        // Se der um salto muito grande (ex: ir do início para o fim), forçamos o enquadramento
+        if (slot > 3) {
+            if (direction === 'forward') newStart = (newSlide - 2 + galeria.length) % galeria.length;
+            else newStart = (newSlide - 1 + galeria.length) % galeria.length;
+        } else {
+            // Regra principal: manter sempre 1 à frente ou 1 atrás
+            if (direction === 'forward' && slot > 2) {
+                newStart = (newSlide - 2 + galeria.length) % galeria.length;
+            } else if (direction === 'backward' && slot < 1) {
+                newStart = (newSlide - 1 + galeria.length) % galeria.length;
+            }
+        }
+        
+        // REGRA DE OURO: "Primeiro e Segundo Contato"
+        // Mantém ancorado no início para as duas primeiras fotos
+        if (newSlide === 0) newStart = 0;
+        else if (newSlide === 1) newStart = 0;
+        
+        return newStart;
+    });
   };
+
+  const nextSlide = () => navigateToSlide((currentSlide + 1) % galeria.length, 'forward');
+  const prevSlide = () => navigateToSlide((currentSlide - 1 + galeria.length) % galeria.length, 'backward');
+
+  const validEquips = [
+    { title: "Áudio e Multimédia", data: vehicle.equip_audio },
+    { title: "Conforto", data: vehicle.equip_conforto },
+    { title: "Desempenho", data: vehicle.equip_desempenho },
+    { title: "Segurança", data: vehicle.equip_seguranca },
+    { title: "Tecnologia e Eletrónica", data: vehicle.equip_tecnologia }
+  ].filter(section => {
+    if (!section.data) return false;
+    return section.data.split(',').map(i => i.trim()).filter(i => i.length > 0).length > 0;
+  });
 
   return (
     <div className="min-h-screen bg-white dark:bg-[#0a0a0a] pt-24 pb-20 transition-colors duration-500">
@@ -84,10 +115,22 @@ export function VehicleDetails() {
                 <button onClick={prevSlide} className="absolute left-6 top-1/2 -translate-y-1/2 z-20 w-12 h-12 flex items-center justify-center bg-black/40 hover:bg-black/70 text-white rounded-full backdrop-blur-md opacity-0 group-hover:opacity-100 transition-all"><ChevronLeft size={24} /></button>
                 <button onClick={nextSlide} className="absolute right-6 top-1/2 -translate-y-1/2 z-20 w-12 h-12 flex items-center justify-center bg-black/40 hover:bg-black/70 text-white rounded-full backdrop-blur-md opacity-0 group-hover:opacity-100 transition-all"><ChevronRight size={24} /></button>
                 <div className="absolute top-6 right-6 z-20 bg-black/40 text-white text-xs font-bold px-4 py-2 rounded-full backdrop-blur-md">{currentSlide + 1} / {galeria.length}</div>
+                
+                {/* Mini visualização com Lógica Inteligente e Regra de Contato */}
                 <div className="absolute bottom-6 left-6 z-20 flex gap-3 p-2 bg-black/40 backdrop-blur-md rounded-2xl">
-                  {galeria.slice(0, 4).map((img, idx) => (
-                    <button key={idx} onClick={() => setCurrentSlide(idx)} className={`w-20 h-14 rounded-xl overflow-hidden border-2 ${currentSlide === idx ? 'border-white scale-105' : 'border-transparent opacity-60 hover:opacity-100'} transition-all`}><img src={img} className="w-full h-full object-cover" /></button>
-                  ))}
+                  {Array.from({ length: Math.min(4, galeria.length) }).map((_, i) => {
+                    // Mapeia as 4 fotos a serem exibidas baseadas no 'thumbStart'
+                    const idx = galeria.length <= 4 ? i : (thumbStart + i) % galeria.length;
+                    return (
+                      <button 
+                        key={`thumb-${idx}`} 
+                        onClick={() => navigateToSlide(idx)} 
+                        className={`w-20 h-14 rounded-xl flex-shrink-0 overflow-hidden border-2 ${currentSlide === idx ? 'border-white scale-105' : 'border-transparent opacity-60 hover:opacity-100'} transition-all`}
+                      >
+                        <img src={galeria[idx]} className="w-full h-full object-cover" />
+                      </button>
+                    );
+                  })}
                 </div>
               </>
             )}
@@ -120,7 +163,7 @@ export function VehicleDetails() {
               </div>
             )}
 
-            {/* ESPECIFICAÇÕES CHAVE - Design Clean inspirado na imagem */}
+            {/* ESPECIFICAÇÕES CHAVE */}
             <div className="mb-12">
               <h3 className="text-2xl font-bold text-ja-dark dark:text-white mb-6 border-b border-gray-100 dark:border-gray-800 pb-4">
                 Especificações Chave
@@ -173,16 +216,31 @@ export function VehicleDetails() {
               {/* CONTEÚDO DAS ABAS */}
               {activeTab === 'equipamento' && (
                 <div className="animate-in fade-in duration-500">
-                  {(!vehicle.equip_audio && !vehicle.equip_conforto && !vehicle.equip_desempenho && !vehicle.equip_seguranca && !vehicle.equip_tecnologia) ? (
+                  {validEquips.length === 0 ? (
                     <p className="text-gray-500 italic">Detalhes de equipamento não especificados para esta viatura.</p>
                   ) : (
-                    <>
-                      {renderEquipList("Áudio e Multimédia", vehicle.equip_audio)}
-                      {renderEquipList("Conforto", vehicle.equip_conforto)}
-                      {renderEquipList("Desempenho", vehicle.equip_desempenho)}
-                      {renderEquipList("Segurança", vehicle.equip_seguranca)}
-                      {renderEquipList("Tecnologia e Eletrónica", vehicle.equip_tecnologia)}
-                    </>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      {validEquips.map((section, idx) => {
+                        const isLastOdd = idx === validEquips.length - 1 && validEquips.length % 2 !== 0;
+                        const items = section.data!.split(',').map(item => item.trim()).filter(item => item.length > 0);
+                        
+                        return (
+                          <div key={section.title} className={`bg-gray-50 dark:bg-[#18181b] rounded-2xl p-6 md:p-8 border border-gray-100 dark:border-gray-800/60 shadow-sm transition-colors duration-500 h-full ${isLastOdd ? 'lg:col-span-2' : ''}`}>
+                            <h4 className="text-xl font-bold text-ja-dark dark:text-white mb-6">{section.title}</h4>
+                            <div className={`grid grid-cols-1 ${isLastOdd ? 'md:grid-cols-4' : 'md:grid-cols-2'} gap-y-4 gap-x-8`}>
+                              {items.map((item, itemIdx) => (
+                                <div key={itemIdx} className="flex items-center gap-3">
+                                  <div className="w-5 h-5 rounded-full bg-emerald-500 flex items-center justify-center flex-shrink-0">
+                                    <Check size={12} className="text-white font-bold" />
+                                  </div>
+                                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">{item}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
                   )}
                 </div>
               )}
@@ -202,12 +260,12 @@ export function VehicleDetails() {
 
           {/* CAIXA LATERAL DE PREÇO E CONTACTO */}
           <div className="lg:w-1/3 w-full">
-            <div className="bg-gray-50 dark:bg-[#18181b] p-8 rounded-3xl border border-gray-100 dark:border-gray-800/60 sticky top-28 shadow-sm">
-              <div className="mb-6">
+            <div className="bg-gray-50 dark:bg-[#18181b] p-8 rounded-3xl border border-gray-100 dark:border-gray-800/60 sticky top-28 shadow-sm overflow-hidden">
+              <div className="mb-6 w-full">
                 <span className="block text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
                   Preço Fixo
                 </span>
-                <span className="text-4xl lg:text-5xl font-bold text-ja-dark dark:text-white">
+                <span className="block text-4xl lg:text-5xl font-bold text-ja-dark dark:text-white break-all">
                   {formatPrice(vehicle.preco)}
                 </span>
               </div>
