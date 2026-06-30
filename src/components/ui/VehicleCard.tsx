@@ -52,6 +52,17 @@ export function VehicleCard({ vehicle }: VehicleCardProps) {
         {vehicle.versao}
       </p>
 
+      {/* Tags Personalizadas (Nacional, Garantia, etc) */}
+      {vehicle.tags && vehicle.tags.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 mb-4 transition-colors duration-500">
+          {vehicle.tags.map(tag => (
+            <span key={tag} className="bg-ja-blue/10 dark:bg-ja-blue/20 text-ja-blue dark:text-blue-400 border border-ja-blue/20 dark:border-ja-blue/30 text-[10px] font-bold uppercase tracking-wider py-0.5 px-2 rounded-full transition-colors">
+              {tag}
+            </span>
+          ))}
+        </div>
+      )}
+
       {/* Detalhes Extra em Badges (Estilo Premium) */}
       <div className="flex flex-wrap gap-2 mb-6">
         

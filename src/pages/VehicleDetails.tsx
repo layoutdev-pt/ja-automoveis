@@ -108,6 +108,17 @@ export function VehicleDetails() {
             <p className="text-xl text-gray-500 dark:text-gray-400 mb-8">
               {vehicle.versao}
             </p>
+            
+            {/* Tags Personalizadas da Viatura */}
+            {vehicle.tags && vehicle.tags.length > 0 && (
+              <div className="flex flex-wrap gap-2 mb-8 transition-colors duration-500">
+                {vehicle.tags.map(tag => (
+                  <span key={tag} className="bg-ja-blue/10 dark:bg-ja-blue/20 text-ja-blue dark:text-blue-400 border border-ja-blue/20 dark:border-ja-blue/30 text-xs font-bold uppercase tracking-wider py-1 px-3 rounded-full shadow-sm transition-colors">
+                    {tag}
+                  </span>
+                ))}
+              </div>
+            )}
 
             {/* ESPECIFICAÇÕES CHAVE - Design Clean inspirado na imagem */}
             <div className="mb-12">
