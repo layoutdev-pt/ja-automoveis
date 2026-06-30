@@ -5,7 +5,6 @@ export interface Vehicle {
   preco: number;
   ano: number;
   
-  // Propriedades Adicionadas Recente
   estado?: string;
   combustivel?: string;
   transmissao?: string;
@@ -14,7 +13,14 @@ export interface Vehicle {
   motor?: string;
   versao?: string;
   descricao?: string;
-  tags?: string[]; // Array de tags personalizadas
+  tags?: string[];
+  
+  // NOVOS CAMPOS DE EQUIPAMENTO
+  equip_audio?: string;
+  equip_conforto?: string;
+  equip_desempenho?: string;
+  equip_seguranca?: string;
+  equip_tecnologia?: string;
   
   fotos: string[];
   em_destaque: boolean;

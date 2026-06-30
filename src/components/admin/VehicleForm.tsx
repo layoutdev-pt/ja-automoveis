@@ -65,7 +65,6 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
   const [estado, setEstado] = useState((initialData as any)?.estado || 'Novo');
   const [combustivel, setCombustivel] = useState(initialData?.combustivel || 'Gasóleo');
   
-  // Novos Campos Baseados no teu Pedido
   const [transmissao, setTransmissao] = useState((initialData as any)?.transmissao || 'Manual');
   const [segmento, setSegmento] = useState((initialData as any)?.segmento || '');
   const [quilometros, setQuilometros] = useState(initialData?.quilometros?.toString() || '');
@@ -76,6 +75,13 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
   const [emStock, setEmStock] = useState(initialData?.em_stock ?? true);
   
   const [descricao, setDescricao] = useState((initialData as any)?.descricao || '');
+
+  // NOVOS ESTADOS DE EQUIPAMENTO
+  const [equipAudio, setEquipAudio] = useState(initialData?.equip_audio || '');
+  const [equipConforto, setEquipConforto] = useState(initialData?.equip_conforto || '');
+  const [equipDesempenho, setEquipDesempenho] = useState(initialData?.equip_desempenho || '');
+  const [equipSeguranca, setEquipSeguranca] = useState(initialData?.equip_seguranca || '');
+  const [equipTecnologia, setEquipTecnologia] = useState(initialData?.equip_tecnologia || '');
 
   // Tags do Carro Específico (Array de nomes)
   const [selectedTags, setSelectedTags] = useState<string[]>((initialData as any)?.tags || []);
@@ -157,14 +163,19 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
         ano: parseInt(ano),
         estado,
         combustivel,
-        transmissao, // Novo Campo
-        segmento: segmento || null, // Novo Campo
-        quilometros: quilometros ? parseInt(quilometros) : null, // Novo Campo
+        transmissao,
+        segmento: segmento || null,
+        quilometros: quilometros ? parseInt(quilometros) : null,
         motor: motor || null,
         versao: versao || null,
         descricao: descricao || null,
+        equip_audio: equipAudio || null,
+        equip_conforto: equipConforto || null,
+        equip_desempenho: equipDesempenho || null,
+        equip_seguranca: equipSeguranca || null,
+        equip_tecnologia: equipTecnologia || null,
         fotos: fotosLimpas,
-        tags: selectedTags, // Array das tags personalizadas
+        tags: selectedTags,
         em_destaque: emDestaque,
         em_stock: emStock
       };
@@ -220,7 +231,7 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
 
       <form onSubmit={handleSubmit} className="space-y-8">
         
-        {/* Bloco 1: Informações Principais (Dinâmicas da Base de Dados) */}
+        {/* Bloco 1: Informações Principais */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Marca *</label>
@@ -253,7 +264,7 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
           </div>
         </div>
 
-        {/* Bloco 2: Especificações Técnicas (Com Transmissão e Segmento) */}
+        {/* Bloco 2: Especificações Técnicas */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 pt-6 border-t border-gray-100 dark:border-gray-800">
           <div>
             <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Segmento</label>
@@ -302,6 +313,36 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
           </div>
         </div>
 
+        {/* Bloco Novo: Equipamentos */}
+        <div className="pt-6 border-t border-gray-100 dark:border-gray-800">
+          <div className="mb-4">
+            <h3 className="text-lg font-bold text-ja-dark dark:text-white">Equipamentos (Separados por vírgula)</h3>
+            <p className="text-xs text-gray-500">Ex: Bluetooth, Ecrã Tátil, Rádio</p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Áudio e Multimédia</label>
+              <textarea value={equipAudio} onChange={e => setEquipAudio(e.target.value)} rows={2} className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-ja-blue/20 bg-gray-50 dark:bg-gray-800 text-sm outline-none text-ja-dark dark:text-white" />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Conforto</label>
+              <textarea value={equipConforto} onChange={e => setEquipConforto(e.target.value)} rows={2} className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-ja-blue/20 bg-gray-50 dark:bg-gray-800 text-sm outline-none text-ja-dark dark:text-white" />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Desempenho</label>
+              <textarea value={equipDesempenho} onChange={e => setEquipDesempenho(e.target.value)} rows={2} className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-ja-blue/20 bg-gray-50 dark:bg-gray-800 text-sm outline-none text-ja-dark dark:text-white" />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Segurança</label>
+              <textarea value={equipSeguranca} onChange={e => setEquipSeguranca(e.target.value)} rows={2} className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-ja-blue/20 bg-gray-50 dark:bg-gray-800 text-sm outline-none text-ja-dark dark:text-white" />
+            </div>
+            <div className="md:col-span-2">
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Tecnologia e Eletrónica</label>
+              <textarea value={equipTecnologia} onChange={e => setEquipTecnologia(e.target.value)} rows={2} className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-ja-blue/20 bg-gray-50 dark:bg-gray-800 text-sm outline-none text-ja-dark dark:text-white" />
+            </div>
+          </div>
+        </div>
+
         {/* Bloco 3: Tags Personalizadas */}
         {tagsList.length > 0 && (
           <div className="pt-6 border-t border-gray-100 dark:border-gray-800">
@@ -342,7 +383,7 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
           <textarea value={descricao} onChange={e => setDescricao(e.target.value)} rows={5} placeholder="Escreva a descrição livremente..." className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-ja-blue/20 outline-none bg-white dark:bg-gray-800 text-ja-dark dark:text-white" />
         </div>
 
-        {/* Bloco 5: Imagens (Mantém-se igual) */}
+        {/* Bloco 5: Imagens */}
         <div className="pt-6 border-t border-gray-100 dark:border-gray-800">
           <div className="mb-6">
             <h3 className="text-lg font-bold text-ja-dark dark:text-white">Estrutura de Fotografias</h3>
