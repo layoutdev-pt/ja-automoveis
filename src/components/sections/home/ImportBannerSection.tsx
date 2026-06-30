@@ -9,12 +9,12 @@ export function ImportBannerSection() {
         {/* Fundo com Imagem e Máscara */}
         <div className="absolute inset-0 w-full h-full">
           <img 
-            src="https://images.unsplash.com/photo-1606016159991-d1774e4c29d0?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80" 
+            src="public/imagens/como-marcas-de-carros-de-luxo-importados-influenciam-tendencias-globais.webp" 
             alt="Importação de Automóveis" 
             className="w-full h-full object-cover opacity-40" 
           />
           {/* O gradiente imita o design da tua foto, fundindo o escuro com a imagem */}
-          <div className="absolute inset-0 bg-gradient-to-r from-[#0a0a0a] via-[#0a0a0a]/90 to-transparent"></div>
+          <div className="absolute inset-0 bg-gradient-to-r from-[#0a0a0a] via-[#0a0a0a]/60 to-transparent"></div>
           
           {/* Círculo decorativo ao estilo da tua imagem (usamos o ja-blue para combinar com o site) */}
           <div className="absolute -bottom-64 -right-20 w-96 h-96 bg-ja-blue/20 rounded-full blur-3xl pointer-events-none"></div>
