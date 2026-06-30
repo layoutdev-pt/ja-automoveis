@@ -4,13 +4,20 @@ export interface Vehicle {
   modelo: string;
   preco: number;
   ano: number;
-  combustivel: string;
+  
+  // Propriedades Adicionadas Recente
+  estado?: string;
+  combustivel?: string;
+  transmissao?: string;
+  segmento?: string;
+  quilometros?: number;
   motor?: string;
   versao?: string;
-  caracteristicas?: string[];
+  descricao?: string;
+  tags?: string[]; // Array de tags personalizadas
+  
   fotos: string[];
   em_destaque: boolean;
   em_stock: boolean;
   created_at: string;
-  updated_at: string;
 }

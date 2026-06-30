@@ -40,7 +40,12 @@ function AppRoutes() {
             <Route path="/contactos" element={<Contactos />} />
             <Route path="/sobre" element={<Sobre />} />
             
+
+            
             {/* A Rota Protegida */}
+            
+
+
             <Route 
               path="/admin" 
               element={
@@ -49,6 +54,9 @@ function AppRoutes() {
                 </ProtectedRoute>
               } 
             />
+
+            
+
           </Routes>
 
           

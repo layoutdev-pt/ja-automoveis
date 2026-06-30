@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { UploadCloud, X, Loader2, Save, FileText, ImagePlus } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { UploadCloud, X, Loader2, Save, FileText, ImagePlus, Tag } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import type { Vehicle } from '../../types';
 
@@ -9,19 +9,67 @@ interface VehicleFormProps {
   initialData?: Vehicle | null;
 }
 
-// Tipo auxiliar para gerir imagens antigas vs novas nos estados locais
 type FormImage = { file?: File; url?: string };
+type MarcaData = { id: string; nome: string; };
+type ModeloData = { id: string; marca_id: string; nome: string; };
+type TagData = { id: string; nome: string; };
 
 export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormProps) {
+  // LÓGICA DE DADOS DO BANCO DE DADOS
+  const [marcasList, setMarcasList] = useState<MarcaData[]>([]);
+  const [modelosList, setModelosList] = useState<ModeloData[]>([]);
+  const [tagsList, setTagsList] = useState<TagData[]>([]);
+
+  // Carrega as Marcas e Tags quando o formulário abre
+  useEffect(() => {
+    async function loadConfigData() {
+      const [marcasRes, tagsRes] = await Promise.all([
+        supabase.from('marcas').select('*').order('nome'),
+        supabase.from('tags').select('*').order('nome')
+      ]);
+      if (marcasRes.data) setMarcasList(marcasRes.data);
+      if (tagsRes.data) setTagsList(tagsRes.data);
+    }
+    loadConfigData();
+  }, []);
+
+  // ESTADOS PRINCIPAIS DO CARRO
   const [marca, setMarca] = useState(initialData?.marca || '');
   const [modelo, setModelo] = useState(initialData?.modelo || '');
+  
+  // Efeito para carregar os Modelos quando a Marca muda
+  useEffect(() => {
+    async function fetchModelosDaMarca() {
+      if (!marca) {
+        setModelosList([]);
+        return;
+      }
+      const marcaObj = marcasList.find(m => m.nome === marca);
+      if (marcaObj) {
+        const { data } = await supabase.from('modelos').select('*').eq('marca_id', marcaObj.id).order('nome');
+        if (data) setModelosList(data);
+      }
+    }
+    fetchModelosDaMarca();
+  }, [marca, marcasList]);
+
+  // Limpa o modelo selecionado se a marca mudar (para não haver BMW Classe A)
+  const handleMarcaChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setMarca(e.target.value);
+    setModelo('');
+  };
+
   const [preco, setPreco] = useState(initialData?.preco?.toString() || '');
   const [ano, setAno] = useState(initialData?.ano?.toString() || '');
   
-  // NOVO: Estado para "Novo" ou "Usado" (padrão: Novo)
   const [estado, setEstado] = useState((initialData as any)?.estado || 'Novo');
-  
   const [combustivel, setCombustivel] = useState(initialData?.combustivel || 'Gasóleo');
+  
+  // Novos Campos Baseados no teu Pedido
+  const [transmissao, setTransmissao] = useState((initialData as any)?.transmissao || 'Manual');
+  const [segmento, setSegmento] = useState((initialData as any)?.segmento || '');
+  const [quilometros, setQuilometros] = useState(initialData?.quilometros?.toString() || '');
+  
   const [motor, setMotor] = useState(initialData?.motor || '');
   const [versao, setVersao] = useState(initialData?.versao || '');
   const [emDestaque, setEmDestaque] = useState(initialData?.em_destaque ?? false);
@@ -29,7 +77,10 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
   
   const [descricao, setDescricao] = useState((initialData as any)?.descricao || '');
 
-  // Lógica Divisória de Imagens (Index 0: Perfil, 1: Destaque Top, 2: Destaque Bottom, 3+: Galeria)
+  // Tags do Carro Específico (Array de nomes)
+  const [selectedTags, setSelectedTags] = useState<string[]>((initialData as any)?.tags || []);
+
+  // Lógica Divisória de Imagens
   const [fotoPerfil, setFotoPerfil] = useState<FormImage | null>(initialData?.fotos?.[0] ? { url: initialData.fotos[0] } : null);
   const [destaqueTop, setDestaqueTop] = useState<FormImage | null>(initialData?.fotos?.[1] ? { url: initialData.fotos[1] } : null);
   const [destaqueBottom, setDestaqueBottom] = useState<FormImage | null>(initialData?.fotos?.[2] ? { url: initialData.fotos[2] } : null);
@@ -38,18 +89,18 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Template da Descrição
   const textoPadrao = `Viatura nacional em excelente estado de conservação.\n\n- Histórico completo de manutenção na marca;\n- Garantia de 18 meses por mútuo acordo;\n- Financiamento até 120 meses sem entrada inicial;\n- Aceitamos retomas mediante avaliação.\n\nA informação disponibilizada, ainda que precisa, não dispensa a sua confirmação, nem poderá ser considerada vinculativa.`;
 
-  const handleColarTexto = () => {
-    setDescricao(textoPadrao);
+  const handleColarTexto = () => setDescricao(textoPadrao);
+
+  const toggleTag = (tagName: string) => {
+    setSelectedTags(prev => 
+      prev.includes(tagName) ? prev.filter(t => t !== tagName) : [...prev, tagName]
+    );
   };
 
-  // Handlers para os Inputs de Arquivos
   const handleSingleFile = (e: React.ChangeEvent<HTMLInputElement>, setter: React.Dispatch<React.SetStateAction<FormImage | null>>) => {
-    if (e.target.files && e.target.files[0]) {
-      setter({ file: e.target.files[0] });
-    }
+    if (e.target.files && e.target.files[0]) setter({ file: e.target.files[0] });
   };
 
   const handleMultipleFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -65,21 +116,16 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    // Verificamos pelo menos a foto de perfil
-    if (!fotoPerfil) {
-      setError('A Foto de Perfil é obrigatória.');
-      return;
-    }
+    if (!fotoPerfil) { setError('A Foto de Perfil é obrigatória.'); return; }
+    if (!marca || !modelo) { setError('Marca e Modelo são campos obrigatórios.'); return; }
 
     setLoading(true);
     setError('');
 
     try {
-      // Função auxiliar para fazer o upload se for um ficheiro novo
       const uploadSeNecessario = async (item: FormImage | null) => {
         if (!item) return null;
-        if (item.url) return item.url; // Já estava na BD
+        if (item.url) return item.url;
         if (item.file) {
           const ext = item.file.name.split('.').pop();
           const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${ext}`;
@@ -91,7 +137,6 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
         return null;
       };
 
-      // 1. Processar todas as imagens na ordem correta
       const imgPerfil = await uploadSeNecessario(fotoPerfil);
       const imgTop = await uploadSeNecessario(destaqueTop);
       const imgBottom = await uploadSeNecessario(destaqueBottom);
@@ -102,29 +147,24 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
         if (url) imgsGaleria.push(url);
       }
 
-      // Constrói o array final
-      const arrayFinalFotos = [
-        imgPerfil,
-        imgTop || 'placeholder', 
-        imgBottom || 'placeholder',
-        ...imgsGaleria
-      ].filter(Boolean) as string[];
-
-      // Remove placeholders
+      const arrayFinalFotos = [imgPerfil, imgTop || 'placeholder', imgBottom || 'placeholder', ...imgsGaleria].filter(Boolean) as string[];
       const fotosLimpas = arrayFinalFotos.map(f => f === 'placeholder' ? '' : f);
 
-      // 2. Os dados a guardar
       const vehicleData = {
         marca,
         modelo,
         preco: parseFloat(preco),
         ano: parseInt(ano),
-        estado, // Guardar o estado (Novo/Usado)
+        estado,
         combustivel,
+        transmissao, // Novo Campo
+        segmento: segmento || null, // Novo Campo
+        quilometros: quilometros ? parseInt(quilometros) : null, // Novo Campo
         motor: motor || null,
         versao: versao || null,
         descricao: descricao || null,
         fotos: fotosLimpas,
+        tags: selectedTags, // Array das tags personalizadas
         em_destaque: emDestaque,
         em_stock: emStock
       };
@@ -136,9 +176,7 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
         const { error: insertError } = await supabase.from('vehicles').insert([vehicleData]);
         if (insertError) throw insertError;
       }
-
       onSuccess();
-
     } catch (err: any) {
       console.error('Erro ao guardar veículo:', err);
       setError('Ocorreu um erro ao guardar o veículo. Verifique a sua ligação.');
@@ -147,23 +185,20 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
     }
   };
 
-  // Componente visual para caixas de upload individuais
   const SingleUploadBox = ({ state, setter, label, format }: { state: FormImage | null, setter: any, label: string, format: string }) => (
     <div className="flex flex-col gap-2">
-      <span className="text-sm font-semibold text-gray-700 dark:text-gray-300 transition-colors duration-500">{label}</span>
+      <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">{label}</span>
       {state ? (
-        <div className="relative aspect-[4/3] rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 group transition-colors duration-500">
+        <div className="relative aspect-[4/3] rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 group">
           <img src={state.url || URL.createObjectURL(state.file!)} alt={label} className="w-full h-full object-cover" />
-          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-            <button type="button" onClick={() => setter(null)} className="bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition-colors">
-              <X size={16} />
-            </button>
+          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center">
+            <button type="button" onClick={() => setter(null)} className="bg-red-500 text-white p-2 rounded-full hover:bg-red-600"><X size={16} /></button>
           </div>
         </div>
       ) : (
-        <label className={`flex flex-col items-center justify-center w-full aspect-[4/3] border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl cursor-pointer bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-500`}>
+        <label className={`flex flex-col items-center justify-center w-full aspect-[4/3] border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl cursor-pointer bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800`}>
           <ImagePlus className="w-8 h-8 text-gray-400 mb-2" />
-          <span className="text-xs text-gray-500 dark:text-gray-400 text-center px-4">{format}</span>
+          <span className="text-xs text-gray-500 text-center px-4">{format}</span>
           <input type="file" accept="image/*" className="hidden" onChange={(e) => handleSingleFile(e, setter)} />
         </label>
       )}
@@ -171,176 +206,189 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
   );
 
   return (
-    <div className="bg-white dark:bg-gray-900 p-6 md:p-8 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 transition-colors duration-500">
+    <div className="bg-white dark:bg-gray-900 p-6 md:p-8 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800">
       
-      <div className="flex justify-between items-center mb-8 border-b border-gray-100 dark:border-gray-800 pb-4 transition-colors duration-500">
+      <div className="flex justify-between items-center mb-8 border-b border-gray-100 dark:border-gray-800 pb-4">
         <div>
-          <h2 className="text-2xl font-bold text-ja-dark dark:text-white transition-colors duration-500">
-            {initialData ? 'Editar Veículo' : 'Adicionar Novo Veículo'}
-          </h2>
-          <p className="text-gray-500 dark:text-gray-400 text-sm mt-1 transition-colors duration-500">Preencha os detalhes, a descrição e organize as fotografias.</p>
+          <h2 className="text-2xl font-bold text-ja-dark dark:text-white">{initialData ? 'Editar Veículo' : 'Adicionar Novo Veículo'}</h2>
+          <p className="text-gray-500 text-sm mt-1">Preencha os detalhes e selecione as opções criadas nas configurações.</p>
         </div>
-        <button onClick={onCancel} className="p-2 text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-full transition-colors duration-300">
-          <X size={24} />
-        </button>
+        <button onClick={onCancel} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-full"><X size={24} /></button>
       </div>
 
-      {error && (
-        <div className="mb-6 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 p-4 rounded-xl text-sm font-medium border border-red-100 dark:border-red-800/50 transition-colors duration-500">
-          {error}
-        </div>
-      )}
+      {error && <div className="mb-6 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 p-4 rounded-xl text-sm font-medium">{error}</div>}
 
       <form onSubmit={handleSubmit} className="space-y-8">
         
-        {/* Bloco 1: Informações Principais */}
+        {/* Bloco 1: Informações Principais (Dinâmicas da Base de Dados) */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 transition-colors duration-500">Marca *</label>
-            <input type="text" required value={marca} onChange={e => setMarca(e.target.value)} placeholder="Ex: Mercedes-Benz" className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-ja-blue/20 outline-none bg-white dark:bg-gray-800 text-ja-dark dark:text-white placeholder-gray-400 dark:placeholder-gray-500 transition-colors duration-500" />
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Marca *</label>
+            <select required value={marca} onChange={handleMarcaChange} className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-ja-blue/20 bg-white dark:bg-gray-800 text-ja-dark dark:text-white outline-none">
+              <option value="">Selecione uma marca...</option>
+              {marcasList.map(m => <option key={m.id} value={m.nome}>{m.nome}</option>)}
+            </select>
+            {marcasList.length === 0 && <p className="text-xs text-red-500 mt-1">Crie marcas na aba "Configurações" primeiro.</p>}
           </div>
           <div>
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 transition-colors duration-500">Modelo *</label>
-            <input type="text" required value={modelo} onChange={e => setModelo(e.target.value)} placeholder="Ex: Classe A" className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-ja-blue/20 outline-none bg-white dark:bg-gray-800 text-ja-dark dark:text-white placeholder-gray-400 dark:placeholder-gray-500 transition-colors duration-500" />
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Modelo *</label>
+            <select required disabled={!marca} value={modelo} onChange={e => setModelo(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-ja-blue/20 bg-white dark:bg-gray-800 text-ja-dark dark:text-white outline-none disabled:opacity-50">
+              <option value="">{marca ? 'Selecione um modelo...' : 'Escolha a marca primeiro'}</option>
+              {modelosList.map(m => <option key={m.id} value={m.nome}>{m.nome}</option>)}
+            </select>
           </div>
           <div>
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 transition-colors duration-500">Preço (€) *</label>
-            <input type="number" required min="0" value={preco} onChange={e => setPreco(e.target.value)} placeholder="Ex: 32500" className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-ja-blue/20 outline-none bg-white dark:bg-gray-800 text-ja-dark dark:text-white placeholder-gray-400 dark:placeholder-gray-500 transition-colors duration-500" />
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Preço (€) *</label>
+            <input type="number" required min="0" value={preco} onChange={e => setPreco(e.target.value)} placeholder="Ex: 32500" className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-ja-blue/20 outline-none bg-white dark:bg-gray-800 text-ja-dark dark:text-white" />
           </div>
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 transition-colors duration-500">Ano *</label>
-            <input type="number" required min="1900" max={new Date().getFullYear() + 1} value={ano} onChange={e => setAno(e.target.value)} placeholder="Ex: 2021" className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-ja-blue/20 outline-none bg-white dark:bg-gray-800 text-ja-dark dark:text-white placeholder-gray-400 dark:placeholder-gray-500 transition-colors duration-500" />
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Ano *</label>
+              <input type="number" required min="1900" max={new Date().getFullYear() + 1} value={ano} onChange={e => setAno(e.target.value)} placeholder="Ex: 2021" className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-ja-blue/20 outline-none bg-white dark:bg-gray-800 text-ja-dark dark:text-white" />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Quilómetros</label>
+              <input type="number" min="0" value={quilometros} onChange={e => setQuilometros(e.target.value)} placeholder="Ex: 45000" className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-ja-blue/20 outline-none bg-white dark:bg-gray-800 text-ja-dark dark:text-white" />
+            </div>
           </div>
         </div>
 
-        {/* Bloco 2: Especificações Técnicas (Agora com o Estado da Viatura e grid-cols-4) */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 pt-6 border-t border-gray-100 dark:border-gray-800 transition-colors duration-500">
+        {/* Bloco 2: Especificações Técnicas (Com Transmissão e Segmento) */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 pt-6 border-t border-gray-100 dark:border-gray-800">
           <div>
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 transition-colors duration-500">Estado *</label>
-            <select value={estado} onChange={e => setEstado(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-ja-blue/20 outline-none bg-white dark:bg-gray-800 text-ja-dark dark:text-white transition-colors duration-500">
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Segmento</label>
+            <select value={segmento} onChange={e => setSegmento(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-ja-blue/20 bg-white dark:bg-gray-800 text-ja-dark dark:text-white outline-none">
+              <option value="">Selecione...</option>
+              <option value="Cabrio">Cabrio</option><option value="Carrinha">Carrinha</option><option value="Citadino">Citadino</option>
+              <option value="Coupe">Coupe</option><option value="Monovolume">Monovolume</option><option value="Peq. Citadino">Peq. Citadino</option>
+              <option value="Sedan">Sedan</option><option value="SUV">SUV</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Combustível *</label>
+            <select value={combustivel} onChange={e => setCombustivel(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-ja-blue/20 bg-white dark:bg-gray-800 text-ja-dark dark:text-white outline-none">
+              <option value="Diesel">Diesel</option>
+              <option value="Eléctrico">Eléctrico</option>
+              <option value="Gasolina">Gasolina</option>
+              <option value="Híbrido (Gasolina)">Híbrido (Gasolina)</option>
+              <option value="Híbrido (Diesel)">Híbrido (Diesel)</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Transmissão *</label>
+            <select value={transmissao} onChange={e => setTransmissao(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-ja-blue/20 bg-white dark:bg-gray-800 text-ja-dark dark:text-white outline-none">
+              <option value="Automática">Automática</option>
+              <option value="Manual">Manual</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Motor / CV</label>
+            <input type="text" value={motor} onChange={e => setMotor(e.target.value)} placeholder="Ex: 116 cv" className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-ja-blue/20 outline-none bg-white dark:bg-gray-800 text-ja-dark dark:text-white" />
+          </div>
+        </div>
+
+        {/* Linha Opcional (Versão/Estado) */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Versão / Linha de Equipamento</label>
+            <input type="text" value={versao} onChange={e => setVersao(e.target.value)} placeholder="Ex: AMG Line Auto" className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-ja-blue/20 outline-none bg-white dark:bg-gray-800 text-ja-dark dark:text-white" />
+          </div>
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Estado da Viatura</label>
+            <select value={estado} onChange={e => setEstado(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-ja-blue/20 bg-white dark:bg-gray-800 text-ja-dark dark:text-white outline-none">
               <option value="Novo">Novo</option>
               <option value="Usado">Usado</option>
             </select>
           </div>
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 transition-colors duration-500">Combustível *</label>
-            <select value={combustivel} onChange={e => setCombustivel(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-ja-blue/20 outline-none bg-white dark:bg-gray-800 text-ja-dark dark:text-white transition-colors duration-500">
-              <option value="Gasóleo">Gasóleo</option>
-              <option value="Gasolina">Gasolina</option>
-              <option value="Elétrico">Elétrico</option>
-              <option value="Híbrido">Híbrido</option>
-              <option value="GPL">GPL</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 transition-colors duration-500">Motor</label>
-            <input type="text" value={motor} onChange={e => setMotor(e.target.value)} placeholder="Ex: 1.5 - 116 CV" className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-ja-blue/20 outline-none bg-white dark:bg-gray-800 text-ja-dark dark:text-white placeholder-gray-400 dark:placeholder-gray-500 transition-colors duration-500" />
-          </div>
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 transition-colors duration-500">Versão / Linha</label>
-            <input type="text" value={versao} onChange={e => setVersao(e.target.value)} placeholder="Ex: AMG Line" className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-ja-blue/20 outline-none bg-white dark:bg-gray-800 text-ja-dark dark:text-white placeholder-gray-400 dark:placeholder-gray-500 transition-colors duration-500" />
-          </div>
         </div>
 
-        {/* Bloco de Descrição com Texto Padrão */}
-        <div className="pt-6 border-t border-gray-100 dark:border-gray-800 transition-colors duration-500">
-          <div className="flex items-center justify-between mb-4">
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 transition-colors duration-500">
-              Descrição da Viatura
+        {/* Bloco 3: Tags Personalizadas */}
+        {tagsList.length > 0 && (
+          <div className="pt-6 border-t border-gray-100 dark:border-gray-800">
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
+              <Tag size={16} className="text-ja-blue" />
+              Etiquetas (Tags) a mostrar no Cartão
             </label>
-            <button
-              type="button"
-              onClick={handleColarTexto}
-              className="flex items-center gap-1.5 text-xs font-bold text-ja-blue bg-ja-blue/10 hover:bg-ja-blue/20 dark:bg-ja-blue/20 dark:hover:bg-ja-blue/30 px-3 py-1.5 rounded-lg transition-colors duration-300"
-            >
-              <FileText size={14} />
-              Colar Texto Padrão
+            <div className="flex flex-wrap gap-2">
+              {tagsList.map(tag => {
+                const isSelected = selectedTags.includes(tag.nome);
+                return (
+                  <button
+                    key={tag.id}
+                    type="button"
+                    onClick={() => toggleTag(tag.nome)}
+                    className={`px-4 py-2 rounded-full text-sm font-semibold transition-all border ${
+                      isSelected 
+                        ? 'bg-ja-blue text-white border-ja-blue shadow-md' 
+                        : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:border-ja-blue/50'
+                    }`}
+                  >
+                    {tag.nome}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Bloco 4: Descrição */}
+        <div className="pt-6 border-t border-gray-100 dark:border-gray-800">
+          <div className="flex items-center justify-between mb-4">
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">Descrição da Viatura</label>
+            <button type="button" onClick={handleColarTexto} className="flex items-center gap-1.5 text-xs font-bold text-ja-blue bg-ja-blue/10 hover:bg-ja-blue/20 px-3 py-1.5 rounded-lg">
+              <FileText size={14} /> Colar Texto Padrão
             </button>
           </div>
-          <textarea
-            value={descricao}
-            onChange={(e) => setDescricao(e.target.value)}
-            rows={5}
-            placeholder="Escreva a descrição livremente..."
-            className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-ja-blue/20 outline-none bg-white dark:bg-gray-800 text-ja-dark dark:text-white placeholder-gray-400 dark:placeholder-gray-500 resize-y transition-colors duration-500"
-          />
+          <textarea value={descricao} onChange={e => setDescricao(e.target.value)} rows={5} placeholder="Escreva a descrição livremente..." className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-ja-blue/20 outline-none bg-white dark:bg-gray-800 text-ja-dark dark:text-white" />
         </div>
 
-        {/* Layout de Mosaico de Imagens */}
-        <div className="pt-6 border-t border-gray-100 dark:border-gray-800 transition-colors duration-500">
+        {/* Bloco 5: Imagens (Mantém-se igual) */}
+        <div className="pt-6 border-t border-gray-100 dark:border-gray-800">
           <div className="mb-6">
-            <h3 className="text-lg font-bold text-ja-dark dark:text-white transition-colors duration-500">Estrutura de Fotografias</h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400 transition-colors duration-500">Defina o mosaico que será apresentado na página de detalhes deste veículo.</p>
+            <h3 className="text-lg font-bold text-ja-dark dark:text-white">Estrutura de Fotografias</h3>
           </div>
-
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            
-            {/* Foto de Perfil */}
-            <div className="col-span-1 border-r-0 lg:border-r border-gray-100 dark:border-gray-800 lg:pr-8 transition-colors duration-500">
+            <div className="col-span-1 lg:border-r border-gray-100 dark:border-gray-800 lg:pr-8">
               <SingleUploadBox state={fotoPerfil} setter={setFotoPerfil} label="1. Foto de Perfil *" format="Listagem e Thumbnail" />
             </div>
-
-            {/* Configuração do Mosaico (Lado Direito) */}
             <div className="col-span-1 lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-6">
-              
-              {/* Modal 1: Galeria Múltipla */}
               <div className="col-span-1 flex flex-col gap-2">
-                <span className="text-sm font-semibold text-gray-700 dark:text-gray-300 transition-colors duration-500">2. Galeria Principal (Modal Maior)</span>
-                
-                <label className="flex flex-col items-center justify-center w-full aspect-[4/3] border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl cursor-pointer bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors duration-500">
+                <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">2. Galeria Principal</span>
+                <label className="flex flex-col items-center justify-center w-full aspect-[4/3] border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl cursor-pointer bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100">
                   <UploadCloud className="w-8 h-8 text-gray-400 mb-2" />
-                  <span className="text-xs text-gray-500 dark:text-gray-400 text-center px-4 font-semibold text-ja-blue hover:underline">
-                    Adicionar Várias Imagens
-                  </span>
+                  <span className="text-xs text-ja-blue font-semibold hover:underline px-4 text-center">Adicionar Várias</span>
                   <input type="file" multiple accept="image/*" className="hidden" onChange={handleMultipleFiles} />
                 </label>
-
-                {/* Lista das Múltiplas */}
                 {galeria.length > 0 && (
                   <div className="grid grid-cols-3 gap-2 mt-2">
                     {galeria.map((img, idx) => (
-                      <div key={idx} className="relative aspect-square rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 group transition-colors duration-500">
-                        <img src={img.url || URL.createObjectURL(img.file!)} alt={`Galeria ${idx}`} className="w-full h-full object-cover" />
-                        <button type="button" onClick={() => removeGaleriaItem(idx)} className="absolute top-1 right-1 bg-red-500/90 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600">
-                          <X size={12} />
-                        </button>
+                      <div key={idx} className="relative aspect-square rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 group">
+                        <img src={img.url || URL.createObjectURL(img.file!)} className="w-full h-full object-cover" />
+                        <button type="button" onClick={() => removeGaleriaItem(idx)} className="absolute top-1 right-1 bg-red-500/90 text-white p-1 rounded-full opacity-0 group-hover:opacity-100"><X size={12} /></button>
                       </div>
                     ))}
                   </div>
                 )}
               </div>
-
-              {/* Modais Laterais 2 e 3 */}
               <div className="col-span-1 grid grid-rows-2 gap-6">
-                <SingleUploadBox state={destaqueTop} setter={setDestaqueTop} label="3. Destaque Superior (Modal 2)" format="Foto Horizontal Única" />
-                <SingleUploadBox state={destaqueBottom} setter={setDestaqueBottom} label="4. Destaque Inferior (Modal 3)" format="Foto Horizontal Única" />
+                <SingleUploadBox state={destaqueTop} setter={setDestaqueTop} label="3. Destaque Superior" format="Opcional" />
+                <SingleUploadBox state={destaqueBottom} setter={setDestaqueBottom} label="4. Destaque Inferior" format="Opcional" />
               </div>
-
             </div>
           </div>
         </div>
 
-        {/* Bloco 4: Estado e Visibilidade */}
-        <div className="pt-6 border-t border-gray-100 dark:border-gray-800 flex flex-col md:flex-row gap-8 transition-colors duration-500">
-          <label className="relative flex items-center gap-3 cursor-pointer">
-            <input type="checkbox" checked={emDestaque} onChange={e => setEmDestaque(e.target.checked)} className="w-5 h-5 text-ja-blue border-gray-300 dark:border-gray-600 dark:bg-gray-800 rounded focus:ring-ja-blue cursor-pointer transition-colors duration-500" />
-            <span className="text-sm font-semibold text-gray-700 dark:text-gray-300 transition-colors duration-500">Destacar na Home Page?</span>
-          </label>
-          
-          <label className="relative flex items-center gap-3 cursor-pointer">
-            <input type="checkbox" checked={emStock} onChange={e => setEmStock(e.target.checked)} className="w-5 h-5 text-ja-blue border-gray-300 dark:border-gray-600 dark:bg-gray-800 rounded focus:ring-ja-blue cursor-pointer transition-colors duration-500" />
-            <span className="text-sm font-semibold text-gray-700 dark:text-gray-300 transition-colors duration-500">Veículo Disponível em Stock?</span>
-          </label>
+        {/* Estado/Visibilidade */}
+        <div className="pt-6 border-t border-gray-100 dark:border-gray-800 flex gap-8">
+          <label className="flex items-center gap-3 cursor-pointer"><input type="checkbox" checked={emDestaque} onChange={e => setEmDestaque(e.target.checked)} className="w-5 h-5 text-ja-blue cursor-pointer" /><span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Destacar na Home Page</span></label>
+          <label className="flex items-center gap-3 cursor-pointer"><input type="checkbox" checked={emStock} onChange={e => setEmStock(e.target.checked)} className="w-5 h-5 text-ja-blue cursor-pointer" /><span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Em Stock</span></label>
         </div>
 
-        {/* Botões de Ação */}
-        <div className="pt-8 flex items-center justify-end gap-4">
-          <button type="button" onClick={onCancel} className="px-6 py-3 text-sm font-semibold text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors duration-300">
-            Cancelar
-          </button>
-          <button type="submit" disabled={loading} className="flex items-center gap-2 bg-ja-dark dark:bg-gray-800 hover:bg-ja-blue dark:hover:bg-ja-blue text-white px-8 py-3 rounded-xl font-semibold transition-colors duration-300 shadow-sm disabled:opacity-70">
-            {loading ? <Loader2 size={20} className="animate-spin" /> : <Save size={20} />}
-            {loading ? 'A Guardar...' : (initialData ? 'Guardar Alterações' : 'Adicionar Veículo')}
+        {/* Submit */}
+        <div className="pt-8 flex justify-end gap-4">
+          <button type="button" onClick={onCancel} className="px-6 py-3 text-sm font-semibold text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl">Cancelar</button>
+          <button type="submit" disabled={loading} className="flex items-center gap-2 bg-ja-dark dark:bg-gray-800 hover:bg-ja-blue text-white px-8 py-3 rounded-xl font-semibold shadow-sm disabled:opacity-70">
+            {loading ? <Loader2 size={20} className="animate-spin" /> : <Save size={20} />} {loading ? 'A Guardar...' : (initialData ? 'Guardar' : 'Adicionar Veículo')}
           </button>
         </div>
       </form>
