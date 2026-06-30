@@ -162,7 +162,7 @@ export function Sobre() {
               onClick={() => setCurrentSlide(idx)}
               className={`transition-all duration-500 rounded-full ${
                 currentSlide === idx 
-                  ? 'w-8 h-2 bg-red-600' // O traço vermelho para o ativo
+                  ? 'w-8 h-2 bg-blue-600' // O traço vermelho para o ativo
                   : 'w-2 h-2 bg-gray-300 dark:bg-gray-700 hover:bg-gray-400' // As bolinhas cinzentas para os inativos
               }`}
             />
