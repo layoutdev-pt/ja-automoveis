@@ -20,7 +20,6 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
   const [modelosList, setModelosList] = useState<ModeloData[]>([]);
   const [tagsList, setTagsList] = useState<TagData[]>([]);
 
-  // Carrega as Marcas e Tags quando o formulário abre
   useEffect(() => {
     async function loadConfigData() {
       const [marcasRes, tagsRes] = await Promise.all([
@@ -33,11 +32,9 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
     loadConfigData();
   }, []);
 
-  // ESTADOS PRINCIPAIS DO CARRO
   const [marca, setMarca] = useState(initialData?.marca || '');
   const [modelo, setModelo] = useState(initialData?.modelo || '');
   
-  // Efeito para carregar os Modelos quando a Marca muda
   useEffect(() => {
     async function fetchModelosDaMarca() {
       if (!marca) {
@@ -53,7 +50,6 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
     fetchModelosDaMarca();
   }, [marca, marcasList]);
 
-  // Limpa o modelo selecionado se a marca mudar (para não haver BMW Classe A)
   const handleMarcaChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setMarca(e.target.value);
     setModelo('');
@@ -71,22 +67,23 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
   
   const [motor, setMotor] = useState(initialData?.motor || '');
   const [versao, setVersao] = useState(initialData?.versao || '');
+  
+  // NOVO ESTADO: Garantia
+  const [garantia, setGarantia] = useState((initialData as any)?.garantia || '');
+  
   const [emDestaque, setEmDestaque] = useState(initialData?.em_destaque ?? false);
   const [emStock, setEmStock] = useState(initialData?.em_stock ?? true);
   
   const [descricao, setDescricao] = useState((initialData as any)?.descricao || '');
 
-  // NOVOS ESTADOS DE EQUIPAMENTO
   const [equipAudio, setEquipAudio] = useState(initialData?.equip_audio || '');
   const [equipConforto, setEquipConforto] = useState(initialData?.equip_conforto || '');
   const [equipDesempenho, setEquipDesempenho] = useState(initialData?.equip_desempenho || '');
   const [equipSeguranca, setEquipSeguranca] = useState(initialData?.equip_seguranca || '');
   const [equipTecnologia, setEquipTecnologia] = useState(initialData?.equip_tecnologia || '');
 
-  // Tags do Carro Específico (Array de nomes)
   const [selectedTags, setSelectedTags] = useState<string[]>((initialData as any)?.tags || []);
 
-  // Lógica Divisória de Imagens
   const [fotoPerfil, setFotoPerfil] = useState<FormImage | null>(initialData?.fotos?.[0] ? { url: initialData.fotos[0] } : null);
   const [destaqueTop, setDestaqueTop] = useState<FormImage | null>(initialData?.fotos?.[1] ? { url: initialData.fotos[1] } : null);
   const [destaqueBottom, setDestaqueBottom] = useState<FormImage | null>(initialData?.fotos?.[2] ? { url: initialData.fotos[2] } : null);
@@ -168,6 +165,7 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
         quilometros: quilometros ? parseInt(quilometros) : null,
         motor: motor || null,
         versao: versao || null,
+        garantia: garantia || null, // Guardar Garantia
         descricao: descricao || null,
         equip_audio: equipAudio || null,
         equip_conforto: equipConforto || null,
@@ -239,7 +237,6 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
               <option value="">Selecione uma marca...</option>
               {marcasList.map(m => <option key={m.id} value={m.nome}>{m.nome}</option>)}
             </select>
-            {marcasList.length === 0 && <p className="text-xs text-red-500 mt-1">Crie marcas na aba "Configurações" primeiro.</p>}
           </div>
           <div>
             <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Modelo *</label>
@@ -298,8 +295,8 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
           </div>
         </div>
 
-        {/* Linha Opcional (Versão/Estado) */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
+        {/* Linha Opcional com 3 colunas (Versão/Estado/Garantia) */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
           <div>
             <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Versão / Linha de Equipamento</label>
             <input type="text" value={versao} onChange={e => setVersao(e.target.value)} placeholder="Ex: AMG Line Auto" className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-ja-blue/20 outline-none bg-white dark:bg-gray-800 text-ja-dark dark:text-white" />
@@ -311,9 +308,13 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
               <option value="Usado">Usado</option>
             </select>
           </div>
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Garantia</label>
+            <input type="text" value={garantia} onChange={e => setGarantia(e.target.value)} placeholder="Ex: 18 meses" className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-ja-blue/20 outline-none bg-white dark:bg-gray-800 text-ja-dark dark:text-white" />
+          </div>
         </div>
 
-        {/* Bloco Novo: Equipamentos */}
+        {/* Bloco de Equipamentos */}
         <div className="pt-6 border-t border-gray-100 dark:border-gray-800">
           <div className="mb-4">
             <h3 className="text-lg font-bold text-ja-dark dark:text-white">Equipamentos (Separados por vírgula)</h3>
@@ -343,7 +344,7 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
           </div>
         </div>
 
-        {/* Bloco 3: Tags Personalizadas */}
+        {/* Resto do formulário mantido perfeitamente igual */}
         {tagsList.length > 0 && (
           <div className="pt-6 border-t border-gray-100 dark:border-gray-800">
             <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
@@ -372,7 +373,6 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
           </div>
         )}
 
-        {/* Bloco 4: Descrição */}
         <div className="pt-6 border-t border-gray-100 dark:border-gray-800">
           <div className="flex items-center justify-between mb-4">
             <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">Descrição da Viatura</label>
@@ -383,7 +383,6 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
           <textarea value={descricao} onChange={e => setDescricao(e.target.value)} rows={5} placeholder="Escreva a descrição livremente..." className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-ja-blue/20 outline-none bg-white dark:bg-gray-800 text-ja-dark dark:text-white" />
         </div>
 
-        {/* Bloco 5: Imagens */}
         <div className="pt-6 border-t border-gray-100 dark:border-gray-800">
           <div className="mb-6">
             <h3 className="text-lg font-bold text-ja-dark dark:text-white">Estrutura de Fotografias</h3>
@@ -419,13 +418,11 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
           </div>
         </div>
 
-        {/* Estado/Visibilidade */}
         <div className="pt-6 border-t border-gray-100 dark:border-gray-800 flex gap-8">
           <label className="flex items-center gap-3 cursor-pointer"><input type="checkbox" checked={emDestaque} onChange={e => setEmDestaque(e.target.checked)} className="w-5 h-5 text-ja-blue cursor-pointer" /><span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Destacar na Home Page</span></label>
           <label className="flex items-center gap-3 cursor-pointer"><input type="checkbox" checked={emStock} onChange={e => setEmStock(e.target.checked)} className="w-5 h-5 text-ja-blue cursor-pointer" /><span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Em Stock</span></label>
         </div>
 
-        {/* Submit */}
         <div className="pt-8 flex justify-end gap-4">
           <button type="button" onClick={onCancel} className="px-6 py-3 text-sm font-semibold text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl">Cancelar</button>
           <button type="submit" disabled={loading} className="flex items-center gap-2 bg-ja-dark dark:bg-gray-800 hover:bg-ja-blue text-white px-8 py-3 rounded-xl font-semibold shadow-sm disabled:opacity-70">

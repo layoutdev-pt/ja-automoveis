@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { 
   ArrowLeft, Loader2, Check, ChevronLeft, ChevronRight, MessageSquare,
-  Calendar, Gauge, Fuel, Settings2, Zap, Car, BadgeCheck, CheckCircle, XCircle 
+  Calendar, Gauge, Fuel, Settings2, Zap, Car, BadgeCheck, CheckCircle, XCircle,
+  ShieldCheck // <-- NOVO ÍCONE DE GARANTIA
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import type { Vehicle } from '../types';
@@ -51,7 +52,6 @@ export function VehicleDetails() {
     
     setThumbStart(prevStart => {
         let newStart = prevStart;
-        
         let slot = newSlide - prevStart;
         if (slot < 0) slot += galeria.length;
         
@@ -156,7 +156,7 @@ export function VehicleDetails() {
               </div>
             )}
 
-            {/* NOVAS ESPECIFICAÇÕES CHAVE COM ÍCONES E DADOS DINÂMICOS */}
+            {/* ESPECIFICAÇÕES CHAVE */}
             <div className="mb-12">
               <h3 className="text-2xl font-bold text-ja-dark dark:text-white mb-6 border-b border-gray-100 dark:border-gray-800 pb-4">
                 Especificações Chave
@@ -174,7 +174,7 @@ export function VehicleDetails() {
                   </div>
                 </div>
 
-                {/* Quilómetros (Condicional) */}
+                {/* Quilómetros */}
                 {(vehicle as any).quilometros != null && (
                   <div className="flex items-start gap-3">
                     <div className="p-2.5 bg-ja-blue/10 dark:bg-ja-blue/20 rounded-xl text-ja-blue dark:text-blue-400 flex-shrink-0">
@@ -200,7 +200,7 @@ export function VehicleDetails() {
                   </div>
                 </div>
 
-                {/* Transmissão (Condicional) */}
+                {/* Transmissão */}
                 {(vehicle as any).transmissao && (
                   <div className="flex items-start gap-3">
                     <div className="p-2.5 bg-ja-blue/10 dark:bg-ja-blue/20 rounded-xl text-ja-blue dark:text-blue-400 flex-shrink-0">
@@ -213,7 +213,7 @@ export function VehicleDetails() {
                   </div>
                 )}
 
-                {/* Motor/CV (Condicional) */}
+                {/* Motor/CV */}
                 {vehicle.motor && (
                   <div className="flex items-start gap-3">
                     <div className="p-2.5 bg-ja-blue/10 dark:bg-ja-blue/20 rounded-xl text-ja-blue dark:text-blue-400 flex-shrink-0">
@@ -226,7 +226,7 @@ export function VehicleDetails() {
                   </div>
                 )}
 
-                {/* Segmento (Condicional) */}
+                {/* Segmento */}
                 {(vehicle as any).segmento && (
                   <div className="flex items-start gap-3">
                     <div className="p-2.5 bg-ja-blue/10 dark:bg-ja-blue/20 rounded-xl text-ja-blue dark:text-blue-400 flex-shrink-0">
@@ -263,10 +263,23 @@ export function VehicleDetails() {
                   </div>
                 </div>
 
+                {/* Garantia (Completa o 9º Slot Perfeitamente!) */}
+                {(vehicle as any).garantia && (
+                  <div className="flex items-start gap-3">
+                    <div className="p-2.5 bg-ja-blue/10 dark:bg-ja-blue/20 rounded-xl text-ja-blue dark:text-blue-400 flex-shrink-0">
+                      <ShieldCheck size={20} strokeWidth={2.5} />
+                    </div>
+                    <div>
+                      <span className="block text-sm font-medium text-gray-400 dark:text-gray-500 mb-1">Garantia</span>
+                      <span className="font-bold text-lg text-ja-dark dark:text-white">{(vehicle as any).garantia}</span>
+                    </div>
+                  </div>
+                )}
+
               </div>
             </div>
 
-            {/* SISTEMA DE ABAS (TABS) */}
+            {/* RESTO DO FICHEIRO MANTIDO */}
             <div className="mb-12">
               <div className="flex border-b border-gray-200 dark:border-gray-800 mb-6 gap-8">
                 <button 
@@ -285,7 +298,6 @@ export function VehicleDetails() {
                 </button>
               </div>
 
-              {/* CONTEÚDO DAS ABAS */}
               {activeTab === 'equipamento' && (
                 <div className="animate-in fade-in duration-500">
                   {validEquips.length === 0 ? (
@@ -330,7 +342,6 @@ export function VehicleDetails() {
 
           </div>
 
-          {/* CAIXA LATERAL DE PREÇO E CONTACTO */}
           <div className="lg:w-1/3 w-full">
             <div className="bg-gray-50 dark:bg-[#18181b] p-8 rounded-3xl border border-gray-100 dark:border-gray-800/60 sticky top-28 shadow-sm overflow-hidden">
               <div className="mb-6 w-full">
