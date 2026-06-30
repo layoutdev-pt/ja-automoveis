@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { ArrowLeft, Loader2, Check, ChevronLeft, ChevronRight, MessageSquare } from 'lucide-react';
+import { 
+  ArrowLeft, Loader2, Check, ChevronLeft, ChevronRight, MessageSquare,
+  Calendar, Gauge, Fuel, Settings2, Zap, Car, BadgeCheck, CheckCircle, XCircle 
+} from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import type { Vehicle } from '../types';
 
@@ -10,7 +13,6 @@ export function VehicleDetails() {
   const [loading, setLoading] = useState(true);
   
   const [currentSlide, setCurrentSlide] = useState(0);
-  // Novo estado que define onde a janela de miniaturas começa
   const [thumbStart, setThumbStart] = useState(0);
   
   const [activeTab, setActiveTab] = useState<'equipamento' | 'descricao'>('equipamento');
@@ -35,6 +37,7 @@ export function VehicleDetails() {
   if (!vehicle) return <div className="min-h-screen flex flex-col items-center justify-center pt-20"><h2 className="text-2xl font-bold">Viatura não encontrada</h2><Link to="/stand" className="text-ja-blue mt-4">Voltar ao Inventário</Link></div>;
 
   const formatPrice = (price: number) => new Intl.NumberFormat('pt-PT', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(price);
+  const formatNumber = (num: number) => new Intl.NumberFormat('pt-PT').format(num);
 
   const fotoPerfil = vehicle.fotos[0];
   const destaqueTop = vehicle.fotos[1] || fotoPerfil; 
@@ -42,7 +45,6 @@ export function VehicleDetails() {
   const galeriaRaw = vehicle.fotos.slice(3).filter(f => f !== '');
   const galeria = galeriaRaw.length > 0 ? galeriaRaw : [fotoPerfil]; 
 
-  // Função centralizada para navegar nas fotos aplicando as regras inteligentes
   const navigateToSlide = (newSlide: number, directionHint?: 'forward' | 'backward') => {
     setCurrentSlide(newSlide);
     if (galeria.length <= 4) return;
@@ -50,11 +52,9 @@ export function VehicleDetails() {
     setThumbStart(prevStart => {
         let newStart = prevStart;
         
-        // Descobre em que "slot" (0 a 3) a nova foto iria cair
         let slot = newSlide - prevStart;
         if (slot < 0) slot += galeria.length;
         
-        // Se clicar diretamente numa miniatura, adivinhamos a direção baseada no slot
         let direction = directionHint;
         if (!direction) {
             if (slot > 2) direction = 'forward';
@@ -62,12 +62,10 @@ export function VehicleDetails() {
             else direction = 'forward';
         }
         
-        // Se der um salto muito grande (ex: ir do início para o fim), forçamos o enquadramento
         if (slot > 3) {
             if (direction === 'forward') newStart = (newSlide - 2 + galeria.length) % galeria.length;
             else newStart = (newSlide - 1 + galeria.length) % galeria.length;
         } else {
-            // Regra principal: manter sempre 1 à frente ou 1 atrás
             if (direction === 'forward' && slot > 2) {
                 newStart = (newSlide - 2 + galeria.length) % galeria.length;
             } else if (direction === 'backward' && slot < 1) {
@@ -75,8 +73,6 @@ export function VehicleDetails() {
             }
         }
         
-        // REGRA DE OURO: "Primeiro e Segundo Contato"
-        // Mantém ancorado no início para as duas primeiras fotos
         if (newSlide === 0) newStart = 0;
         else if (newSlide === 1) newStart = 0;
         
@@ -116,10 +112,8 @@ export function VehicleDetails() {
                 <button onClick={nextSlide} className="absolute right-6 top-1/2 -translate-y-1/2 z-20 w-12 h-12 flex items-center justify-center bg-black/40 hover:bg-black/70 text-white rounded-full backdrop-blur-md opacity-0 group-hover:opacity-100 transition-all"><ChevronRight size={24} /></button>
                 <div className="absolute top-6 right-6 z-20 bg-black/40 text-white text-xs font-bold px-4 py-2 rounded-full backdrop-blur-md">{currentSlide + 1} / {galeria.length}</div>
                 
-                {/* Mini visualização com Lógica Inteligente e Regra de Contato */}
                 <div className="absolute bottom-6 left-6 z-20 flex gap-3 p-2 bg-black/40 backdrop-blur-md rounded-2xl">
                   {Array.from({ length: Math.min(4, galeria.length) }).map((_, i) => {
-                    // Mapeia as 4 fotos a serem exibidas baseadas no 'thumbStart'
                     const idx = galeria.length <= 4 ? i : (thumbStart + i) % galeria.length;
                     return (
                       <button 
@@ -152,7 +146,6 @@ export function VehicleDetails() {
               {vehicle.versao}
             </p>
             
-            {/* Tags Personalizadas da Viatura */}
             {vehicle.tags && vehicle.tags.length > 0 && (
               <div className="flex flex-wrap gap-2 mb-8 transition-colors duration-500">
                 {vehicle.tags.map(tag => (
@@ -163,34 +156,113 @@ export function VehicleDetails() {
               </div>
             )}
 
-            {/* ESPECIFICAÇÕES CHAVE */}
+            {/* NOVAS ESPECIFICAÇÕES CHAVE COM ÍCONES E DADOS DINÂMICOS */}
             <div className="mb-12">
               <h3 className="text-2xl font-bold text-ja-dark dark:text-white mb-6 border-b border-gray-100 dark:border-gray-800 pb-4">
                 Especificações Chave
               </h3>
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-y-8 gap-x-4">
-                <div>
-                  <span className="block text-sm text-gray-400 dark:text-gray-500 mb-1">Ano</span>
-                  <span className="font-bold text-lg text-ja-dark dark:text-white">{vehicle.ano}</span>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-y-8 gap-x-4">
+                
+                {/* Ano */}
+                <div className="flex items-start gap-3">
+                  <div className="p-2.5 bg-ja-blue/10 dark:bg-ja-blue/20 rounded-xl text-ja-blue dark:text-blue-400 flex-shrink-0">
+                    <Calendar size={20} strokeWidth={2.5} />
+                  </div>
+                  <div>
+                    <span className="block text-sm font-medium text-gray-400 dark:text-gray-500 mb-1">Ano</span>
+                    <span className="font-bold text-lg text-ja-dark dark:text-white">{vehicle.ano}</span>
+                  </div>
                 </div>
-                <div>
-                  <span className="block text-sm text-gray-400 dark:text-gray-500 mb-1">Combustível</span>
-                  <span className="font-bold text-lg text-ja-dark dark:text-white">{vehicle.combustivel}</span>
+
+                {/* Quilómetros (Condicional) */}
+                {(vehicle as any).quilometros != null && (
+                  <div className="flex items-start gap-3">
+                    <div className="p-2.5 bg-ja-blue/10 dark:bg-ja-blue/20 rounded-xl text-ja-blue dark:text-blue-400 flex-shrink-0">
+                      <Gauge size={20} strokeWidth={2.5} />
+                    </div>
+                    <div>
+                      <span className="block text-sm font-medium text-gray-400 dark:text-gray-500 mb-1">Quilómetros</span>
+                      <span className="font-bold text-lg text-ja-dark dark:text-white">
+                        {formatNumber((vehicle as any).quilometros)} km
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Combustível */}
+                <div className="flex items-start gap-3">
+                  <div className="p-2.5 bg-ja-blue/10 dark:bg-ja-blue/20 rounded-xl text-ja-blue dark:text-blue-400 flex-shrink-0">
+                    <Fuel size={20} strokeWidth={2.5} />
+                  </div>
+                  <div>
+                    <span className="block text-sm font-medium text-gray-400 dark:text-gray-500 mb-1">Combustível</span>
+                    <span className="font-bold text-lg text-ja-dark dark:text-white">{vehicle.combustivel}</span>
+                  </div>
                 </div>
-                <div>
-                  <span className="block text-sm text-gray-400 dark:text-gray-500 mb-1">Motor</span>
-                  <span className="font-bold text-lg text-ja-dark dark:text-white">{vehicle.motor || 'N/A'}</span>
+
+                {/* Transmissão (Condicional) */}
+                {(vehicle as any).transmissao && (
+                  <div className="flex items-start gap-3">
+                    <div className="p-2.5 bg-ja-blue/10 dark:bg-ja-blue/20 rounded-xl text-ja-blue dark:text-blue-400 flex-shrink-0">
+                      <Settings2 size={20} strokeWidth={2.5} />
+                    </div>
+                    <div>
+                      <span className="block text-sm font-medium text-gray-400 dark:text-gray-500 mb-1">Transmissão</span>
+                      <span className="font-bold text-lg text-ja-dark dark:text-white">{(vehicle as any).transmissao}</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Motor/CV (Condicional) */}
+                {vehicle.motor && (
+                  <div className="flex items-start gap-3">
+                    <div className="p-2.5 bg-ja-blue/10 dark:bg-ja-blue/20 rounded-xl text-ja-blue dark:text-blue-400 flex-shrink-0">
+                      <Zap size={20} strokeWidth={2.5} />
+                    </div>
+                    <div>
+                      <span className="block text-sm font-medium text-gray-400 dark:text-gray-500 mb-1">Motor / CV</span>
+                      <span className="font-bold text-lg text-ja-dark dark:text-white">{vehicle.motor}</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Segmento (Condicional) */}
+                {(vehicle as any).segmento && (
+                  <div className="flex items-start gap-3">
+                    <div className="p-2.5 bg-ja-blue/10 dark:bg-ja-blue/20 rounded-xl text-ja-blue dark:text-blue-400 flex-shrink-0">
+                      <Car size={20} strokeWidth={2.5} />
+                    </div>
+                    <div>
+                      <span className="block text-sm font-medium text-gray-400 dark:text-gray-500 mb-1">Segmento</span>
+                      <span className="font-bold text-lg text-ja-dark dark:text-white">{(vehicle as any).segmento}</span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Estado */}
+                <div className="flex items-start gap-3">
+                  <div className="p-2.5 bg-ja-blue/10 dark:bg-ja-blue/20 rounded-xl text-ja-blue dark:text-blue-400 flex-shrink-0">
+                    <BadgeCheck size={20} strokeWidth={2.5} />
+                  </div>
+                  <div>
+                    <span className="block text-sm font-medium text-gray-400 dark:text-gray-500 mb-1">Estado</span>
+                    <span className="font-bold text-lg text-ja-dark dark:text-white">{(vehicle as any).estado || 'Usado'}</span>
+                  </div>
                 </div>
-                <div>
-                  <span className="block text-sm text-gray-400 dark:text-gray-500 mb-1">Estado</span>
-                  <span className="font-bold text-lg text-ja-dark dark:text-white">{(vehicle as any).estado || 'Usado'}</span>
+
+                {/* Disponibilidade */}
+                <div className="flex items-start gap-3">
+                  <div className={`p-2.5 rounded-xl flex-shrink-0 ${vehicle.em_stock ? 'bg-emerald-500/10 text-emerald-500' : 'bg-red-500/10 text-red-500'}`}>
+                    {vehicle.em_stock ? <CheckCircle size={20} strokeWidth={2.5} /> : <XCircle size={20} strokeWidth={2.5} />}
+                  </div>
+                  <div>
+                    <span className="block text-sm font-medium text-gray-400 dark:text-gray-500 mb-1">Disponibilidade</span>
+                    <span className={`font-bold text-lg ${vehicle.em_stock ? 'text-emerald-500' : 'text-red-500'}`}>
+                      {vehicle.em_stock ? 'Em Stock' : 'Vendido'}
+                    </span>
+                  </div>
                 </div>
-                <div>
-                  <span className="block text-sm text-gray-400 dark:text-gray-500 mb-1">Disponibilidade</span>
-                  <span className="font-bold text-lg text-emerald-500 flex items-center gap-1">
-                    {vehicle.em_stock ? <><Check size={18} /> Em Stock</> : <span className="text-gray-500">Vendido</span>}
-                  </span>
-                </div>
+
               </div>
             </div>
 
