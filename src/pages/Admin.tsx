@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { LogOut, Plus, Edit, Trash2, Car, Loader2, Users, Shield, UserPlus, Settings, Tag } from 'lucide-react';
+import { LogOut, Plus, Edit, Trash2, Car, Loader2, Users, UserPlus, Settings, Tag } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import type { Vehicle } from '../types';
 import { VehicleForm } from '../components/admin/VehicleForm';
