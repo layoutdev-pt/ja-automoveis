@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { 
   ArrowLeft, Loader2, Check, ChevronLeft, ChevronRight, MessageSquare,
   Calendar, Gauge, Fuel, Settings2, Zap, Car, BadgeCheck, CheckCircle, XCircle,
-  ShieldCheck // <-- NOVO ÍCONE DE GARANTIA
+  ShieldCheck
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import type { Vehicle } from '../types';
@@ -145,16 +145,6 @@ export function VehicleDetails() {
             <p className="text-xl text-gray-500 dark:text-gray-400 mb-8">
               {vehicle.versao}
             </p>
-            
-            {vehicle.tags && vehicle.tags.length > 0 && (
-              <div className="flex flex-wrap gap-2 mb-8 transition-colors duration-500">
-                {vehicle.tags.map(tag => (
-                  <span key={tag} className="bg-ja-blue/10 dark:bg-ja-blue/20 text-ja-blue dark:text-blue-400 border border-ja-blue/20 dark:border-ja-blue/30 text-xs font-bold uppercase tracking-wider py-1 px-3 rounded-full shadow-sm transition-colors">
-                    {tag}
-                  </span>
-                ))}
-              </div>
-            )}
 
             {/* ESPECIFICAÇÕES CHAVE */}
             <div className="mb-12">
@@ -279,7 +269,7 @@ export function VehicleDetails() {
               </div>
             </div>
 
-            {/* RESTO DO FICHEIRO MANTIDO */}
+            {/* ABAS (Equipamento / Descrição) */}
             <div className="mb-12">
               <div className="flex border-b border-gray-200 dark:border-gray-800 mb-6 gap-8">
                 <button 
