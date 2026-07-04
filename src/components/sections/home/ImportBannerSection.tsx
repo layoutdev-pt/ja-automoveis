@@ -9,7 +9,7 @@ export function ImportBannerSection() {
         {/* Fundo com Imagem e Máscara */}
         <div className="absolute inset-0 w-full h-full">
           <img 
-            src="public/imagens/como-marcas-de-carros-de-luxo-importados-influenciam-tendencias-globais.webp" 
+            src="imagens/como-marcas-de-carros-de-luxo-importados-influenciam-tendencias-globais.webp" 
             alt="Importação de Automóveis" 
             className="w-full h-full object-cover opacity-40" 
           />
