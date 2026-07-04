@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { NavLink, Link, useNavigate } from 'react-router-dom';
-import { Search, Loader2, ChevronRight, Phone, Menu, X } from 'lucide-react';
+import { Search, Loader2, ChevronRight, Menu, X } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import type { Vehicle } from '../../types';
 
