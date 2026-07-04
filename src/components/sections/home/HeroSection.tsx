@@ -1,6 +1,3 @@
-import { useState, useEffect, useRef } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-
 export function HeroSection() {
   return (
     <section className="relative h-[80vh] min-h-[600px] w-full flex items-center justify-center mt-[-80px]">
