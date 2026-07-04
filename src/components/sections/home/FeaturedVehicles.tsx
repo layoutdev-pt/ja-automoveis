@@ -7,7 +7,7 @@ import type { Vehicle } from '../../../types';
 
 // Opções fixas para os filtros
 const TRANSMISSOES = ['Automática', 'Manual'];
-const COMBUSTIVEIS = ['Diesel', 'Eléctrico', 'Gasolina', 'Híbrido (Gasolina)', 'Híbrido (Diesel)'];
+const COMBUSTIVEIS = ['Diesel', 'Eléctrico', 'Gasolina', 'Híbrido (Gasolina)', 'Híbrido Plug-in Gasolina'];
 
 // ================= COMPONENTE DE DROPDOWN INLINE =================
 function InlineDropdown({ 
@@ -85,6 +85,11 @@ export function FeaturedVehicles() {
   const [marcasAtivas, setMarcasAtivas] = useState<string[]>([]);
   const [modelosAtivos, setModelosAtivos] = useState<string[]>([]);
 
+  // Estados para Drag to Scroll (Arrastar com o rato)
+  const [isDragging, setIsDragging] = useState(false);
+  const [startX, setStartX] = useState(0);
+  const [scrollLeft, setScrollLeft] = useState(0);
+
   // Carregar Marcas
   useEffect(() => {
     async function loadMarcas() {
@@ -133,11 +138,56 @@ export function FeaturedVehicles() {
     fetchVehicles();
   }, []);
 
+  // Efeito para Scroll com a Roda do Rato (Wheel Scroll)
+  useEffect(() => {
+    const slider = carouselRef.current;
+    if (!slider) return;
+
+    const handleWheel = (e: WheelEvent) => {
+      // Verifica se o carrossel está nos limites para permitir o scroll vertical normal se necessário
+      const isAtLeft = slider.scrollLeft === 0;
+      const isAtRight = Math.ceil(slider.scrollLeft + slider.clientWidth) >= slider.scrollWidth;
+
+      if (e.deltaY > 0 && !isAtRight) {
+        e.preventDefault(); // Impede o ecrã de descer
+        slider.scrollLeft += e.deltaY;
+      } else if (e.deltaY < 0 && !isAtLeft) {
+        e.preventDefault(); // Impede o ecrã de subir
+        slider.scrollLeft += e.deltaY;
+      }
+    };
+
+    // Usamos { passive: false } para poder fazer o preventDefault
+    slider.addEventListener('wheel', handleWheel, { passive: false });
+
+    return () => {
+      slider.removeEventListener('wheel', handleWheel);
+    };
+  }, [loading, featuredVehicles]); // Reaplicar quando o loading termina e o DOM é gerado
+
+  // Função para rolar pelos Botões (Setas)
   const scroll = (direction: 'left' | 'right') => {
     if (carouselRef.current) {
       const scrollAmount = window.innerWidth > 768 ? 350 : 250;
       carouselRef.current.scrollBy({ left: direction === 'left' ? -scrollAmount : scrollAmount, behavior: 'smooth' });
     }
+  };
+
+  // Funções para Arrastar (Drag to Scroll)
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (!carouselRef.current) return;
+    setIsDragging(true);
+    setStartX(e.pageX - carouselRef.current.offsetLeft);
+    setScrollLeft(carouselRef.current.scrollLeft);
+  };
+  const handleMouseLeave = () => setIsDragging(false);
+  const handleMouseUp = () => setIsDragging(false);
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDragging || !carouselRef.current) return;
+    e.preventDefault(); // Previne seleção de texto
+    const x = e.pageX - carouselRef.current.offsetLeft;
+    const walk = (x - startX) * 2; // Velocidade do arraste (x2)
+    carouselRef.current.scrollLeft = scrollLeft - walk;
   };
 
   // Enviar os filtros para o Stand
@@ -162,15 +212,8 @@ export function FeaturedVehicles() {
             </p>
           </div>
           
+          {/* Link para o stand movido para o canto (sem as setas aqui) */}
           <div className="flex items-center gap-4">
-            <div className="hidden md:flex items-center gap-2 mr-4">
-              <button onClick={() => scroll('left')} className="p-3 rounded-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-gray-500 dark:text-gray-400 hover:text-ja-blue hover:border-ja-blue transition-all" aria-label="Anterior">
-                <ChevronLeft size={20} />
-              </button>
-              <button onClick={() => scroll('right')} className="p-3 rounded-full bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 text-gray-500 dark:text-gray-400 hover:text-ja-blue hover:border-ja-blue transition-all" aria-label="Seguinte">
-                <ChevronRight size={20} />
-              </button>
-            </div>
             <Link to="/stand" className="hidden md:flex items-center gap-2 text-ja-blue font-semibold hover:text-blue-800 transition-colors">
               Ver todo o stand
               <ArrowRight size={20} />
@@ -178,31 +221,22 @@ export function FeaturedVehicles() {
           </div>
         </div>
 
-        {/* BARRA DE PESQUISA INLINE (Estilo da Imagem) */}
-        <div className="mt-8 mb-12 bg-gray-100 dark:bg-[#121212] p-4 rounded-2xl flex flex-col lg:flex-row items-center gap-4 shadow-x1 border border-gray-800/6">
+        {/* BARRA DE PESQUISA INLINE */}
+        <div className="mt-8 mb-12 bg-gray-90 dark:bg-[#121212] p-4 rounded-2xl flex flex-col lg:flex-row items-center gap-4 border border-gray-800/10">
           <InlineDropdown 
-            placeholder="Marca" 
-            value={marca} 
-            options={marcasAtivas} 
+            placeholder="Marca" value={marca} options={marcasAtivas} 
             onChange={(val) => { setMarca(val); setModelo(''); }} 
           />
           <InlineDropdown 
-            placeholder="Modelo" 
-            value={modelo} 
-            options={modelosAtivos} 
-            onChange={setModelo} 
-            disabled={!marca} // Desativa se a marca não estiver selecionada
+            placeholder="Modelo" value={modelo} options={modelosAtivos} 
+            onChange={setModelo} disabled={!marca} 
           />
           <InlineDropdown 
-            placeholder="Combustível" 
-            value={combustivel} 
-            options={COMBUSTIVEIS} 
+            placeholder="Combustível" value={combustivel} options={COMBUSTIVEIS} 
             onChange={setCombustivel} 
           />
           <InlineDropdown 
-            placeholder="Transmissão" 
-            value={transmissao} 
-            options={TRANSMISSOES} 
+            placeholder="Transmissão" value={transmissao} options={TRANSMISSOES} 
             onChange={setTransmissao} 
           />
           
@@ -223,23 +257,48 @@ export function FeaturedVehicles() {
             <p className="text-gray-500 dark:text-gray-400 font-medium">Nenhum veículo em destaque no momento.</p>
           </div>
         ) : (
-          <div className="relative">
+          <div className="relative group">
             <style>{`.hide-scrollbar::-webkit-scrollbar { display: none; } .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }`}</style>
             
+            {/* SETA ESQUERDA - FLUTUANTE */}
+            <button 
+              onClick={() => scroll('left')} 
+              className="absolute top-[40%] -translate-y-1/2 -left-6 z-20 w-14 h-14 flex items-center justify-center bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:text-ja-blue dark:hover:text-ja-blue rounded-full shadow-2xl border border-gray-100 dark:border-gray-700 transition-all duration-300 hidden md:flex opacity-0 group-hover:opacity-100 -translate-x-4 group-hover:translate-x-0" 
+              aria-label="Anterior"
+            >
+              <ChevronLeft size={28} />
+            </button>
+
+            {/* CONTENTOR DO CARROSSEL (COM DRAG EVENTS) */}
             <div 
               ref={carouselRef}
-              className="flex gap-4 sm:gap-6 overflow-x-auto hide-scrollbar snap-x snap-mandatory pb-8 -mx-4 px-4 sm:mx-0 sm:px-0"
+              onMouseDown={handleMouseDown}
+              onMouseLeave={handleMouseLeave}
+              onMouseUp={handleMouseUp}
+              onMouseMove={handleMouseMove}
+              // Alterna as classes consoante está a ser arrastado ou não para evitar conflitos de snap e clique
+              className={`flex gap-4 sm:gap-6 overflow-x-auto hide-scrollbar pb-8 -mx-4 px-4 sm:mx-0 sm:px-0 select-none ${isDragging ? 'cursor-grabbing' : 'cursor-grab snap-x snap-mandatory'}`}
             >
               {featuredVehicles.map((vehicle) => (
                 <div 
                   key={vehicle.id} 
-                  // CARTÕES MAIS PEQUENOS AQUI: (min-w-[280px] e min-w-[320px] em vez de 380px)
-                  className="w-[25vw] min-w-[280px] lg:min-w-[320px] flex-shrink-0 snap-start"
+                  // Desativa pointer-events para garantir que o utilizador não clica no "Ver Detalhes" ao tentar arrastar
+                  className={`w-[25vw] min-w-[280px] lg:min-w-[320px] flex-shrink-0 ${isDragging ? 'pointer-events-none' : 'snap-start'}`}
                 >
                   <VehicleCard vehicle={vehicle} />
                 </div>
               ))}
             </div>
+
+            {/* SETA DIREITA - FLUTUANTE */}
+            <button 
+              onClick={() => scroll('right')} 
+              className="absolute top-[40%] -translate-y-1/2 -right-6 z-20 w-14 h-14 flex items-center justify-center bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:text-ja-blue dark:hover:text-ja-blue rounded-full shadow-2xl border border-gray-100 dark:border-gray-700 transition-all duration-300 hidden md:flex opacity-0 group-hover:opacity-100 translate-x-4 group-hover:translate-x-0" 
+              aria-label="Seguinte"
+            >
+              <ChevronRight size={28} />
+            </button>
+
           </div>
         )}
 
