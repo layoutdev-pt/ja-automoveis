@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { UploadCloud, X, Loader2, Save, FileText, ImagePlus, Tag } from 'lucide-react';
+import { UploadCloud, X, Loader2, Save, FileText, ImagePlus, Plus, Trash2 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import type { Vehicle } from '../../types';
 
@@ -12,32 +12,32 @@ interface VehicleFormProps {
 type FormImage = { file?: File; url?: string };
 type MarcaData = { id: string; nome: string; };
 type ModeloData = { id: string; marca_id: string; nome: string; };
-type TagData = { id: string; nome: string; };
 
 export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormProps) {
-  // LÓGICA DE DADOS DO BANCO DE DADOS
+  // ================= ESTADOS DE MARCAS E MODELOS =================
   const [marcasList, setMarcasList] = useState<MarcaData[]>([]);
   const [modelosList, setModelosList] = useState<ModeloData[]>([]);
-  const [tagsList, setTagsList] = useState<TagData[]>([]);
+  
+  // Estados para os Inputs de Gestão (Adicionar Novo)
+  const [newMarcaInput, setNewMarcaInput] = useState('');
+  const [newModeloInput, setNewModeloInput] = useState('');
 
+  // Carregar Marcas Iniciais
   useEffect(() => {
-    async function loadConfigData() {
-      const [marcasRes, tagsRes] = await Promise.all([
-        supabase.from('marcas').select('*').order('nome'),
-        supabase.from('tags').select('*').order('nome')
-      ]);
-      if (marcasRes.data) setMarcasList(marcasRes.data);
-      if (tagsRes.data) setTagsList(tagsRes.data);
+    async function loadMarcas() {
+      const { data } = await supabase.from('marcas').select('*').order('nome');
+      if (data) setMarcasList(data);
     }
-    loadConfigData();
+    loadMarcas();
   }, []);
 
   const [marca, setMarca] = useState(initialData?.marca || '');
   const [modelo, setModelo] = useState(initialData?.modelo || '');
   
+  // Carregar Modelos quando a Marca é selecionada
   useEffect(() => {
     async function fetchModelosDaMarca() {
-      if (!marca) {
+      if (!marca || marca === 'MANAGE_MARCAS') {
         setModelosList([]);
         return;
       }
@@ -52,22 +52,55 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
 
   const handleMarcaChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setMarca(e.target.value);
-    setModelo('');
+    setModelo(''); // Reseta o modelo
   };
 
+  // ================= LÓGICA GESTÃO DE MARCAS INLINE =================
+  const handleAddMarca = async () => {
+    if (!newMarcaInput.trim()) return;
+    const { data, error } = await supabase.from('marcas').insert([{ nome: newMarcaInput.trim() }]).select().single();
+    if (error) alert('Erro ao adicionar. A marca já existe?');
+    else if (data) {
+      setMarcasList(prev => [...prev, data].sort((a,b) => a.nome.localeCompare(b.nome)));
+      setNewMarcaInput('');
+    }
+  };
+
+  const handleDeleteMarca = async (id: string) => {
+    if (!window.confirm('Atenção: Apagar esta marca apagará todos os modelos associados a ela! Tem a certeza?')) return;
+    await supabase.from('marcas').delete().eq('id', id);
+    setMarcasList(prev => prev.filter(m => m.id !== id));
+  };
+
+  // ================= LÓGICA GESTÃO DE MODELOS INLINE =================
+  const handleAddModelo = async () => {
+    if (!newModeloInput.trim() || !marca) return;
+    const marcaObj = marcasList.find(m => m.nome === marca);
+    if (!marcaObj) return;
+    const { data, error } = await supabase.from('modelos').insert([{ marca_id: marcaObj.id, nome: newModeloInput.trim() }]).select().single();
+    if (error) alert('Erro ao adicionar. Este modelo já existe para esta marca?');
+    else if (data) {
+      setModelosList(prev => [...prev, data].sort((a,b) => a.nome.localeCompare(b.nome)));
+      setNewModeloInput('');
+    }
+  };
+
+  const handleDeleteModelo = async (id: string) => {
+    if (!window.confirm('Apagar este modelo?')) return;
+    await supabase.from('modelos').delete().eq('id', id);
+    setModelosList(prev => prev.filter(m => m.id !== id));
+  };
+
+  // ================= RESTANTES ESTADOS DO FORMULÁRIO =================
   const [preco, setPreco] = useState(initialData?.preco?.toString() || '');
   const [ano, setAno] = useState(initialData?.ano?.toString() || '');
-  
   const [estado, setEstado] = useState((initialData as any)?.estado || 'Novo');
-  const [combustivel, setCombustivel] = useState(initialData?.combustivel || 'Diesel'); // Corrigido valor por defeito
-  
+  const [combustivel, setCombustivel] = useState(initialData?.combustivel || 'Diesel');
   const [transmissao, setTransmissao] = useState((initialData as any)?.transmissao || 'Manual');
   const [segmento, setSegmento] = useState((initialData as any)?.segmento || '');
   const [quilometros, setQuilometros] = useState(initialData?.quilometros?.toString() || '');
-  
   const [motor, setMotor] = useState(initialData?.motor || '');
   const [versao, setVersao] = useState(initialData?.versao || '');
-  
   const [garantia, setGarantia] = useState((initialData as any)?.garantia || '');
   
   const [emDestaque, setEmDestaque] = useState(initialData?.em_destaque ?? false);
@@ -81,8 +114,6 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
   const [equipSeguranca, setEquipSeguranca] = useState(initialData?.equip_seguranca || '');
   const [equipTecnologia, setEquipTecnologia] = useState(initialData?.equip_tecnologia || '');
 
-  const [selectedTags, setSelectedTags] = useState<string[]>((initialData as any)?.tags || []);
-
   const [fotoPerfil, setFotoPerfil] = useState<FormImage | null>(initialData?.fotos?.[0] ? { url: initialData.fotos[0] } : null);
   const [destaqueTop, setDestaqueTop] = useState<FormImage | null>(initialData?.fotos?.[1] ? { url: initialData.fotos[1] } : null);
   const [destaqueBottom, setDestaqueBottom] = useState<FormImage | null>(initialData?.fotos?.[2] ? { url: initialData.fotos[2] } : null);
@@ -94,12 +125,6 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
   const textoPadrao = `Viatura nacional em excelente estado de conservação.\n\n- Histórico completo de manutenção na marca;\n- Garantia de 18 meses por mútuo acordo;\n- Financiamento até 120 meses sem entrada inicial;\n- Aceitamos retomas mediante avaliação.\n\nA informação disponibilizada, ainda que precisa, não dispensa a sua confirmação, nem poderá ser considerada vinculativa.`;
 
   const handleColarTexto = () => setDescricao(textoPadrao);
-
-  const toggleTag = (tagName: string) => {
-    setSelectedTags(prev => 
-      prev.includes(tagName) ? prev.filter(t => t !== tagName) : [...prev, tagName]
-    );
-  };
 
   const handleSingleFile = (e: React.ChangeEvent<HTMLInputElement>, setter: React.Dispatch<React.SetStateAction<FormImage | null>>) => {
     if (e.target.files && e.target.files[0]) setter({ file: e.target.files[0] });
@@ -118,6 +143,12 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validações Base
+    if (marca === 'MANAGE_MARCAS' || modelo === 'MANAGE_MODELOS') {
+      setError('Por favor feche os painéis de gestão e selecione uma marca/modelo válida.');
+      return;
+    }
     if (!fotoPerfil) { setError('A Foto de Perfil é obrigatória.'); return; }
     if (!marca || !modelo) { setError('Marca e Modelo são campos obrigatórios.'); return; }
 
@@ -172,7 +203,7 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
         equip_seguranca: equipSeguranca || null,
         equip_tecnologia: equipTecnologia || null,
         fotos: fotosLimpas,
-        tags: selectedTags,
+        tags: [], // Passar vazio já que removemos as Tags
         em_destaque: emDestaque,
         em_stock: emStock
       };
@@ -219,7 +250,7 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
       <div className="flex justify-between items-center mb-8 border-b border-gray-100 dark:border-gray-800 pb-4">
         <div>
           <h2 className="text-2xl font-bold text-ja-dark dark:text-white">{initialData ? 'Editar Veículo' : 'Adicionar Novo Veículo'}</h2>
-          <p className="text-gray-500 text-sm mt-1">Preencha os detalhes e selecione as opções criadas nas configurações.</p>
+          <p className="text-gray-500 text-sm mt-1">Preencha os detalhes da viatura.</p>
         </div>
         <button onClick={onCancel} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-full"><X size={24} /></button>
       </div>
@@ -230,20 +261,79 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
         
         {/* Bloco 1: Informações Principais */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          
+          {/* MARCA E GESTÃO DE MARCAS */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Marca *</label>
             <select required value={marca} onChange={handleMarcaChange} className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-ja-blue/20 bg-white dark:bg-gray-800 text-ja-dark dark:text-white outline-none">
               <option value="">Selecione uma marca...</option>
               {marcasList.map(m => <option key={m.id} value={m.nome}>{m.nome}</option>)}
+              <option value="MANAGE_MARCAS" className="font-bold text-ja-blue">➕ Adicionar / Gerir Marcas...</option>
             </select>
+
+            {/* Painel de Gestão de Marcas Inline */}
+            {marca === 'MANAGE_MARCAS' && (
+              <div className="mt-3 p-4 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl">
+                 <div className="flex justify-between items-center mb-3">
+                   <h4 className="font-bold text-sm text-ja-dark dark:text-white">Gerir Marcas</h4>
+                   <button type="button" onClick={() => setMarca('')} className="text-gray-400 hover:text-red-500 text-xs flex items-center gap-1 font-semibold"><X size={14}/> Fechar</button>
+                 </div>
+                 <div className="flex gap-2 mb-3">
+                    <input 
+                      type="text" placeholder="Nova Marca..." value={newMarcaInput} onChange={e => setNewMarcaInput(e.target.value)} 
+                      onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAddMarca(); } }}
+                      className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 outline-none text-ja-dark dark:text-white" 
+                    />
+                    <button type="button" onClick={handleAddMarca} className="bg-ja-dark dark:bg-gray-700 text-white p-2 rounded-lg hover:bg-ja-blue transition-colors"><Plus size={20}/></button>
+                 </div>
+                 <div className="max-h-32 overflow-y-auto border border-gray-100 dark:border-gray-700 rounded-lg p-2 space-y-1 bg-white dark:bg-gray-900">
+                    {marcasList.length === 0 ? <p className="text-xs text-center py-2 text-gray-500">Nenhuma marca criada.</p> : marcasList.map(m => (
+                      <div key={m.id} className="flex justify-between items-center px-2 py-1 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md">
+                        <span className="text-sm font-semibold text-ja-dark dark:text-white">{m.nome}</span>
+                        <button type="button" onClick={() => handleDeleteMarca(m.id)} className="text-gray-400 hover:text-red-500"><Trash2 size={14}/></button>
+                      </div>
+                    ))}
+                 </div>
+              </div>
+            )}
           </div>
+
+          {/* MODELO E GESTÃO DE MODELOS */}
           <div>
             <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Modelo *</label>
-            <select required disabled={!marca} value={modelo} onChange={e => setModelo(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-ja-blue/20 bg-white dark:bg-gray-800 text-ja-dark dark:text-white outline-none disabled:opacity-50">
-              <option value="">{marca ? 'Selecione um modelo...' : 'Escolha a marca primeiro'}</option>
+            <select required disabled={!marca || marca === 'MANAGE_MARCAS'} value={modelo} onChange={e => setModelo(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-ja-blue/20 bg-white dark:bg-gray-800 text-ja-dark dark:text-white outline-none disabled:opacity-50">
+              <option value="">{marca && marca !== 'MANAGE_MARCAS' ? 'Selecione um modelo...' : 'Escolha a marca primeiro'}</option>
               {modelosList.map(m => <option key={m.id} value={m.nome}>{m.nome}</option>)}
+              {marca && marca !== 'MANAGE_MARCAS' && <option value="MANAGE_MODELOS" className="font-bold text-ja-blue">➕ Adicionar / Gerir Modelos...</option>}
             </select>
+
+            {/* Painel de Gestão de Modelos Inline */}
+            {modelo === 'MANAGE_MODELOS' && (
+              <div className="mt-3 p-4 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl">
+                 <div className="flex justify-between items-center mb-3">
+                   <h4 className="font-bold text-sm text-ja-dark dark:text-white">Gerir Modelos para {marca}</h4>
+                   <button type="button" onClick={() => setModelo('')} className="text-gray-400 hover:text-red-500 text-xs flex items-center gap-1 font-semibold"><X size={14}/> Fechar</button>
+                 </div>
+                 <div className="flex gap-2 mb-3">
+                    <input 
+                      type="text" placeholder="Novo Modelo..." value={newModeloInput} onChange={e => setNewModeloInput(e.target.value)} 
+                      onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAddModelo(); } }}
+                      className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 outline-none text-ja-dark dark:text-white" 
+                    />
+                    <button type="button" onClick={handleAddModelo} className="bg-ja-dark dark:bg-gray-700 text-white p-2 rounded-lg hover:bg-ja-blue transition-colors"><Plus size={20}/></button>
+                 </div>
+                 <div className="max-h-32 overflow-y-auto border border-gray-100 dark:border-gray-700 rounded-lg p-2 space-y-1 bg-white dark:bg-gray-900">
+                    {modelosList.length === 0 ? <p className="text-xs text-center py-2 text-gray-500">Nenhum modelo criado para esta marca.</p> : modelosList.map(m => (
+                      <div key={m.id} className="flex justify-between items-center px-2 py-1 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md">
+                        <span className="text-sm font-semibold text-ja-dark dark:text-white">{m.nome}</span>
+                        <button type="button" onClick={() => handleDeleteModelo(m.id)} className="text-gray-400 hover:text-red-500"><Trash2 size={14}/></button>
+                      </div>
+                    ))}
+                 </div>
+              </div>
+            )}
           </div>
+
           <div>
             <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Preço (€) *</label>
             <input type="number" required min="0" value={preco} onChange={e => setPreco(e.target.value)} placeholder="Ex: 32500" className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-ja-blue/20 outline-none bg-white dark:bg-gray-800 text-ja-dark dark:text-white" />
@@ -260,7 +350,7 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
           </div>
         </div>
 
-        {/* Bloco 2: Especificações Técnicas (ATUALIZADO) */}
+        {/* Bloco 2: Especificações Técnicas */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 pt-6 border-t border-gray-100 dark:border-gray-800">
           <div>
             <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Segmento</label>
@@ -344,34 +434,6 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
             </div>
           </div>
         </div>
-
-        {tagsList.length > 0 && (
-          <div className="pt-6 border-t border-gray-100 dark:border-gray-800">
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
-              <Tag size={16} className="text-ja-blue" />
-              Etiquetas (Tags) a mostrar no Cartão
-            </label>
-            <div className="flex flex-wrap gap-2">
-              {tagsList.map(tag => {
-                const isSelected = selectedTags.includes(tag.nome);
-                return (
-                  <button
-                    key={tag.id}
-                    type="button"
-                    onClick={() => toggleTag(tag.nome)}
-                    className={`px-4 py-2 rounded-full text-sm font-semibold transition-all border ${
-                      isSelected 
-                        ? 'bg-ja-blue text-white border-ja-blue shadow-md' 
-                        : 'bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-300 hover:border-ja-blue/50'
-                    }`}
-                  >
-                    {tag.nome}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
 
         <div className="pt-6 border-t border-gray-100 dark:border-gray-800">
           <div className="flex items-center justify-between mb-4">
