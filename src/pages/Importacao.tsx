@@ -35,7 +35,6 @@ export function Importacao() {
   ];
 
   return (
-    // O fundo principal da página muda para o tom escuro profundo
     <div className="min-h-screen bg-gray-50 dark:bg-[#0a0a0a] pt-24 pb-20 transition-colors duration-500">
       
       {/* Hero Section */}
@@ -60,11 +59,11 @@ export function Importacao() {
             {steps.map((step, index) => (
               <div 
                 key={index} 
-                // Os cartões dos passos ganham um fundo translúcido no modo escuro
-                className="bg-gray-50 dark:bg-gray-900/50 p-8 rounded-2xl border border-gray-100 dark:border-gray-800 hover:shadow-md dark:hover:shadow-none transition-all duration-300 relative mt-4"
+                // AQUI FOI ADICIONADO O HOVER: hover:-translate-y-2 hover:shadow-xl dark:hover:border-gray-700
+                className="bg-gray-50 dark:bg-gray-900/50 p-8 rounded-2xl border border-gray-100 dark:border-gray-800 hover:-translate-y-2 hover:shadow-xl dark:hover:shadow-2xl dark:hover:border-gray-700 transition-all duration-300 relative mt-4 group"
               >
                 {/* A caixinha do ícone que fica sobreposta */}
-                <div className="absolute -top-6 left-8 bg-white dark:bg-gray-800 p-3 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 transition-colors duration-500">
+                <div className="absolute -top-6 left-8 bg-white dark:bg-gray-800 p-3 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 group-hover:scale-110 transition-transform duration-300">
                   {step.icon}
                 </div>
                 <h3 className="text-xl font-bold text-ja-dark dark:text-white mt-6 mb-3 transition-colors duration-500">

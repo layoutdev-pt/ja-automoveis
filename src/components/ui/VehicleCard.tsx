@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { CalendarDays, Gauge, Fuel, Settings2, Zap } from 'lucide-react';
+import { CalendarDays, Gauge, Fuel, Settings2 } from 'lucide-react';
 import type { Vehicle } from '../../types';
 
 interface VehicleCardProps {
@@ -21,10 +21,10 @@ export function VehicleCard({ vehicle }: VehicleCardProps) {
   };
 
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-2xl overflow-hidden shadow-sm hover:shadow-lg dark:hover:shadow-gray-900/50 transition-all duration-500 border border-gray-100 dark:border-gray-800 flex flex-col group p-4">
+    <div className="bg-white dark:bg-gray-900 rounded-2xl overflow-hidden shadow-sm hover:shadow-lg dark:hover:shadow-gray-900/50 transition-all duration-500 border border-gray-100 dark:border-gray-800 flex flex-col group p-4 h-full">
       
       {/* Imagem do Veículo */}
-      <div className="relative aspect-[4/3] rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-800 mb-4 transition-colors duration-500">
+      <div className="relative aspect-[4/3] rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-800 mb-4 transition-colors duration-500 flex-shrink-0">
         <img 
           src={vehicle.fotos[0]} 
           alt={`${vehicle.marca} ${vehicle.modelo}`} 
@@ -41,24 +41,22 @@ export function VehicleCard({ vehicle }: VehicleCardProps) {
         <span>{(vehicle as any).estado || 'Usado'}</span>
       </div>
 
-      {/* Título e Versão */}
-      <h3 className="text-lg font-bold text-ja-dark dark:text-white leading-tight mb-1 line-clamp-1 transition-colors duration-500">
-        {vehicle.marca} {vehicle.modelo}
-      </h3>
-      <p className="text-sm text-gray-500 dark:text-gray-400 mb-4 line-clamp-1 transition-colors duration-500">
-        {vehicle.versao}
-      </p>
-
-      {/* Tags Personalizadas */}
-      {vehicle.tags && vehicle.tags.length > 0 && (
-        <div className="flex flex-wrap gap-1.5 mb-4 transition-colors duration-500">
-          {vehicle.tags.map(tag => (
-            <span key={tag} className="bg-ja-blue/10 dark:bg-ja-blue/20 text-ja-blue dark:text-blue-400 border border-ja-blue/20 dark:border-ja-blue/30 text-[10px] font-bold uppercase tracking-wider py-0.5 px-2 rounded-full transition-colors">
-              {tag}
-            </span>
-          ))}
+      {/* Título, Versão e Preço */}
+      <div className="flex justify-between items-start gap-3 mb-4">
+        <div className="flex-1 min-w-0">
+          <h3 className="text-lg font-bold text-ja-dark dark:text-white leading-tight mb-1 line-clamp-1 transition-colors duration-500">
+            {vehicle.marca} {vehicle.modelo}
+          </h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400 line-clamp-1 transition-colors duration-500">
+            {vehicle.versao}
+          </p>
         </div>
-      )}
+        
+        {/* Preço posicionado à direita */}
+        <div className="text-lg font-bold text-ja-dark dark:text-white transition-colors duration-500 whitespace-nowrap">
+          {formatPrice(vehicle.preco)}
+        </div>
+      </div>
 
       {/* Detalhes Extra em Badges */}
       <div className="flex flex-wrap gap-2 mb-6">
@@ -87,28 +85,14 @@ export function VehicleCard({ vehicle }: VehicleCardProps) {
             {(vehicle as any).transmissao}
           </span>
         )}
-
-        {vehicle.motor && (
-          <span className="flex items-center gap-1.5 bg-gray-50 dark:bg-[#18181b] border border-gray-100 dark:border-transparent px-2.5 py-1 rounded-full text-[11px] font-medium text-gray-600 dark:text-gray-300 transition-colors duration-500">
-            <Zap size={12} className="opacity-70" />
-            {vehicle.motor}
-          </span>
-        )}
       </div>
 
-      {/* Seção Inferior com Garantia Dinâmica */}
-      <div className="mt-auto">
-        
+      {/* Seção Inferior com Garantia e Botão */}
+      <div className="mt-auto flex flex-col justify-end">
         <div className="border-t border-gray-100 dark:border-gray-800/60 pt-4 mb-4 transition-colors duration-500">
           <p className="text-xs font-medium text-gray-500 dark:text-gray-400">
             Garantia: <span className="text-teal-600 dark:text-teal-400">{(vehicle as any).garantia || 'Sob Consulta'}</span>
           </p>
-        </div>
-
-        <div className="flex items-center justify-between mb-4">
-          <div className="text-xl font-bold text-ja-dark dark:text-white transition-colors duration-500">
-            {formatPrice(vehicle.preco)}
-          </div>
         </div>
 
         <Link 

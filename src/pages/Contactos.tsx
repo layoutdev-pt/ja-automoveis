@@ -1,7 +1,62 @@
 import { useState, useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
-import { MapPin, Phone, Mail, Clock, Send } from 'lucide-react';
+import { MapPin, Phone, Mail, Clock, Send, ChevronDown } from 'lucide-react';
 import { WhatsAppIcon } from '../components/ui/WhatsAppIcon';
+
+// ================= COMPONENTE CUSTOMIZADO PARA O DROPDOWN =================
+function CustomSelect({
+  value,
+  options,
+  onChange,
+}: {
+  value: string;
+  options: string[];
+  onChange: (val: string) => void;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) setIsOpen(false);
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
+
+  return (
+    <div className="relative" ref={dropdownRef}>
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full flex justify-between items-center px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 focus:bg-white dark:focus:bg-gray-700 text-ja-dark dark:text-white outline-none transition-colors duration-500 focus:ring-2 focus:ring-ja-blue/20 shadow-sm"
+      >
+        <span className="truncate pr-2">{value}</span>
+        <ChevronDown size={16} className={`flex-shrink-0 text-gray-500 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
+      </button>
+
+      {isOpen && (
+        <div className="absolute z-50 w-full mt-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-2xl max-h-60 overflow-y-auto p-1 flex flex-col transition-colors duration-500">
+          {options.map((opt) => (
+            <button
+              key={opt}
+              type="button"
+              onClick={() => { onChange(opt); setIsOpen(false); }}
+              className={`w-full text-left px-3 py-2 text-sm rounded-lg transition-colors duration-200 ${
+                value === opt 
+                  ? 'bg-ja-blue/10 text-ja-blue font-semibold' 
+                  : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+              }`}
+            >
+              {opt}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+// =========================================================================
 
 export function Contactos() {
   const location = useLocation();
@@ -13,13 +68,18 @@ export function Contactos() {
   // Lista de assuntos padrão
   const assuntosPadrao = [
     'Informação Geral',
-    'Agendar Test Drive',
+    'Agendar Test-Drive',
     'Processo de Importação',
-    'Vender Viatura'
+    'Quero Vender a Minha Viatura'
   ];
 
-  // Verificar se o assunto recebido é um assunto personalizado (ex: vindo de um carro)
+  // Verificar se o assunto recebido é um assunto personalizado
   const isAssuntoPersonalizado = assuntoRecebido && !assuntosPadrao.includes(assuntoRecebido);
+  
+  // Montar as opções finais a apresentar
+  const assuntosOptions = isAssuntoPersonalizado 
+    ? [assuntoRecebido, ...assuntosPadrao] 
+    : assuntosPadrao;
 
   const [formData, setFormData] = useState({
     nome: '',
@@ -46,7 +106,7 @@ export function Contactos() {
     setFormData({ ...formData, mensagem: '', consentimento: false });
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value, type } = e.target;
     const isChecked = type === 'checkbox' ? (e.target as HTMLInputElement).checked : undefined;
     
@@ -180,21 +240,14 @@ export function Contactos() {
                 </div>
               </div>
 
+              {/* DROPDOWN CUSTOMIZADO AQUI */}
               <div>
                 <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2 transition-colors duration-500">Assunto *</label>
-                <select 
-                  name="assunto" value={formData.assunto} onChange={handleChange} 
-                  className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-ja-blue/20 bg-gray-50 dark:bg-gray-800 focus:bg-white dark:focus:bg-gray-700 text-ja-dark dark:text-white outline-none transition-colors duration-500 appearance-none cursor-pointer"
-                >
-                  {/* Se houver um assunto personalizado, adicionamos essa opção */}
-                  {isAssuntoPersonalizado && (
-                    <option value={assuntoRecebido}>{assuntoRecebido}</option>
-                  )}
-                  <option value="Informação Geral">Informação Geral</option>
-                  <option value="Agendar Test Drive">Agendar Test-Drive</option>
-                  <option value="Processo de Importação">Processo de Importação</option>
-                  <option value="Vender Viatura">Quero Vender a Minha Viatura</option>
-                </select>
+                <CustomSelect
+                  value={formData.assunto}
+                  options={assuntosOptions}
+                  onChange={(val) => setFormData({ ...formData, assunto: val })}
+                />
               </div>
 
               <div>
@@ -218,7 +271,7 @@ export function Contactos() {
 
               <button 
                 type="submit" 
-                className="w-full sm:w-auto px-8 py-4 bg-ja-dark dark:bg-gray-800 hover:bg-ja-blue dark:hover:bg-ja-blue text-white font-bold rounded-xl transition-colors duration-300 flex items-center justify-center gap-2"
+                className="w-full sm:w-auto px-8 py-4 bg-ja-dark dark:bg-gray-800 hover:bg-ja-blue dark:hover:bg-ja-blue text-white font-bold rounded-xl transition-colors duration-300 flex items-center justify-center gap-2 shadow-sm"
               >
                 <Send size={18} />
                 Enviar Mensagem

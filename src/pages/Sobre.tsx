@@ -1,19 +1,33 @@
-import { useState } from 'react';
-import { ShieldCheck, Star, Users, Trophy, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ShieldCheck, Star, Users, Trophy } from 'lucide-react';
 
 export function Sobre() {
-  // Estado para o carrossel da equipa
-  const [currentSlide, setCurrentSlide] = useState(0);
-
-  // Array com as 3 fotos da equipa (podes substituir os links pelas tuas fotos reais depois)
-  const teamImages = [
-    "https://images.unsplash.com/photo-1560179707-f14e90ef3623?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80",
-    "https://images.unsplash.com/photo-1522071820081-009f0129c71c?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80",
-    "https://images.unsplash.com/photo-1556761175-5973dc0f32e7?ixlib=rb-4.0.3&auto=format&fit=crop&w=2000&q=80"
+  // Lista com os membros da equipa (Substitui com os teus dados e fotos reais)
+  const teamMembers = [
+    {
+      nome: "João Silva",
+      cargo: "CEO & Fundador",
+      descricao: "Com mais de 15 anos no ramo, o João garante que a visão da empresa se reflete em cada negócio, focando-se sempre na total satisfação do cliente.",
+      foto: "https://images.unsplash.com/photo-1560250097-0b93528c311a?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+    },
+    {
+      nome: "Maria Costa",
+      cargo: "Diretora Comercial",
+      descricao: "A Maria tem um dom natural para encontrar a viatura perfeita para cada cliente. Com um sorriso sempre presente, esclarece qualquer dúvida.",
+      foto: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+    },
+    {
+      nome: "Carlos Santos",
+      cargo: "Especialista em Importação",
+      descricao: "O perito em vasculhar o mercado europeu. O Carlos analisa minuciosamente cada viatura antes de autorizar o seu transporte para Portugal.",
+      foto: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+    },
+    {
+      nome: "Ana Oliveira",
+      cargo: "Gestão e Pós-Venda",
+      descricao: "Garante que toda a burocracia é tratada de forma ágil e acompanha o cliente mesmo após a entrega, assegurando total tranquilidade.",
+      foto: "https://images.unsplash.com/photo-1580489944761-15a19d654956?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80"
+    }
   ];
-
-  const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % 3);
-  const prevSlide = () => setCurrentSlide((prev) => (prev - 1 + 3) % 3);
 
   return (
     <div className="min-h-screen bg-white dark:bg-[#0a0a0a] pt-24 pb-20 transition-colors duration-500 overflow-hidden">
@@ -77,7 +91,7 @@ export function Sobre() {
         </div>
 
         {/* Secção da Equipa - Título */}
-        <div className="text-center mb-10">
+        <div className="text-center mb-12">
           <div className="inline-flex items-center justify-center gap-3 mb-4 bg-ja-blue/10 dark:bg-ja-blue/20 px-4 py-2 rounded-full">
             <Users size={20} className="text-ja-blue dark:text-blue-400" />
             <span className="font-semibold text-ja-blue dark:text-blue-400 uppercase tracking-wider text-sm">A Nossa Equipa</span>
@@ -87,85 +101,35 @@ export function Sobre() {
           </h2>
         </div>
 
-        {/* ================= CARROSSEL COVERFLOW 3 IMAGENS ================= */}
-        <div className="relative w-full max-w-6xl mx-auto h-[350px] md:h-[500px] flex items-center justify-center">
-          
-          {/* Fundo decorativo leve (opcional, para dar mais destaque ao slider) */}
-          <div className="absolute inset-0 bg-gray-50/50 dark:bg-gray-900/20 rounded-3xl -z-10"></div>
-
-          {/* Imagens do Carrossel */}
-          <div className="relative w-full h-full flex justify-center items-center">
-            {teamImages.map((src, idx) => {
-              // Lógica de posição: quem é o atual, o anterior e o próximo num ciclo de 3
-              const isActive = idx === currentSlide;
-              const isPrev = idx === (currentSlide - 1 + 3) % 3;
-              const isNext = idx === (currentSlide + 1) % 3;
-
-              // Classes dinâmicas para a animação
-              let positionClass = '';
-              let zIndexClass = '';
-
-              if (isActive) {
-                // Imagem Central (Focada)
-                positionClass = 'translate-x-0 scale-100 opacity-100 shadow-2xl';
-                zIndexClass = 'z-20';
-              } else if (isPrev) {
-                // Imagem Esquerda (Desfocada/Fundo)
-                positionClass = '-translate-x-[60%] md:-translate-x-[75%] scale-75 opacity-40 blur-[2px]';
-                zIndexClass = 'z-10 cursor-pointer';
-              } else if (isNext) {
-                // Imagem Direita (Desfocada/Fundo)
-                positionClass = 'translate-x-[60%] md:translate-x-[75%] scale-75 opacity-40 blur-[2px]';
-                zIndexClass = 'z-10 cursor-pointer';
-              }
-
-              return (
-                <div 
-                  key={idx}
-                  onClick={() => !isActive && setCurrentSlide(idx)} // Permite clicar na imagem lateral para ir para ela
-                  className={`absolute w-[75%] md:w-[60%] lg:w-[50%] h-[90%] transition-all duration-700 ease-[cubic-bezier(0.25,1,0.5,1)] rounded-3xl overflow-hidden ${positionClass} ${zIndexClass}`}
-                >
-                  <img 
-                    src={src} 
-                    alt={`Membro da Equipa ${idx + 1}`} 
-                    className="w-full h-full object-cover"
-                  />
-                  {/* Gradiente subtil apenas na imagem ativa para dar um ar premium */}
-                  {isActive && (
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent pointer-events-none"></div>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Botões Laterais Flutuantes (Setas) */}
-          <button 
-            onClick={prevSlide}
-            className="absolute left-2 md:left-10 z-30 w-12 h-12 flex items-center justify-center bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:text-ja-blue hover:scale-110 rounded-full shadow-lg border border-gray-100 dark:border-gray-700 transition-all duration-300"
-          >
-            <ChevronLeft size={24} />
-          </button>
-          <button 
-            onClick={nextSlide}
-            className="absolute right-2 md:right-10 z-30 w-12 h-12 flex items-center justify-center bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:text-ja-blue hover:scale-110 rounded-full shadow-lg border border-gray-100 dark:border-gray-700 transition-all duration-300"
-          >
-            <ChevronRight size={24} />
-          </button>
-        </div>
-
-        {/* Pontos de Paginação (Dots) no estilo da foto de referência */}
-        <div className="flex justify-center items-center gap-3 mt-8 mb-10">
-          {teamImages.map((_, idx) => (
-            <button
-              key={idx}
-              onClick={() => setCurrentSlide(idx)}
-              className={`transition-all duration-500 rounded-full ${
-                currentSlide === idx 
-                  ? 'w-8 h-2 bg-blue-600' // O traço vermelho para o ativo
-                  : 'w-2 h-2 bg-gray-300 dark:bg-gray-700 hover:bg-gray-400' // As bolinhas cinzentas para os inativos
-              }`}
-            />
+        {/* ================= GRELHA DA EQUIPA (NOVO ESTILO) ================= */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8 max-w-6xl mx-auto">
+          {teamMembers.map((member, index) => (
+            <div 
+              key={index} 
+              className="bg-gray-50 dark:bg-[#121212] rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 dark:border-gray-800 flex flex-col group"
+            >
+              {/* Foto Superior */}
+              <div className="aspect-[4/5] w-full overflow-hidden relative">
+                <img 
+                  src={member.foto} 
+                  alt={member.nome} 
+                  className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-700"
+                />
+              </div>
+              
+              {/* Informação (Fundo Branco/Escuro Texturado) */}
+              <div className="p-6 text-center flex flex-col flex-1 bg-white dark:bg-[#18181b] z-10 -mt-2 rounded-t-2xl relative border-t border-gray-50 dark:border-gray-800">
+                <h3 className="text-xl font-bold text-ja-dark dark:text-white mb-1">
+                  {member.nome}
+                </h3>
+                <p className="text-sm font-bold text-teal-600 dark:text-teal-400 mb-4">
+                  {member.cargo}
+                </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+                  {member.descricao}
+                </p>
+              </div>
+            </div>
           ))}
         </div>
         {/* =============================================================== */}

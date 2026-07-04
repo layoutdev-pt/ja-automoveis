@@ -59,7 +59,7 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
   const [ano, setAno] = useState(initialData?.ano?.toString() || '');
   
   const [estado, setEstado] = useState((initialData as any)?.estado || 'Novo');
-  const [combustivel, setCombustivel] = useState(initialData?.combustivel || 'Gasóleo');
+  const [combustivel, setCombustivel] = useState(initialData?.combustivel || 'Diesel'); // Corrigido valor por defeito
   
   const [transmissao, setTransmissao] = useState((initialData as any)?.transmissao || 'Manual');
   const [segmento, setSegmento] = useState((initialData as any)?.segmento || '');
@@ -68,7 +68,6 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
   const [motor, setMotor] = useState(initialData?.motor || '');
   const [versao, setVersao] = useState(initialData?.versao || '');
   
-  // NOVO ESTADO: Garantia
   const [garantia, setGarantia] = useState((initialData as any)?.garantia || '');
   
   const [emDestaque, setEmDestaque] = useState(initialData?.em_destaque ?? false);
@@ -165,7 +164,7 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
         quilometros: quilometros ? parseInt(quilometros) : null,
         motor: motor || null,
         versao: versao || null,
-        garantia: garantia || null, // Guardar Garantia
+        garantia: garantia || null, 
         descricao: descricao || null,
         equip_audio: equipAudio || null,
         equip_conforto: equipConforto || null,
@@ -261,15 +260,17 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
           </div>
         </div>
 
-        {/* Bloco 2: Especificações Técnicas */}
+        {/* Bloco 2: Especificações Técnicas (ATUALIZADO) */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 pt-6 border-t border-gray-100 dark:border-gray-800">
           <div>
             <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Segmento</label>
             <select value={segmento} onChange={e => setSegmento(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-ja-blue/20 bg-white dark:bg-gray-800 text-ja-dark dark:text-white outline-none">
               <option value="">Selecione...</option>
-              <option value="Cabrio">Cabrio</option><option value="Carrinha">Carrinha</option><option value="Citadino">Citadino</option>
-              <option value="Coupe">Coupe</option><option value="Monovolume">Monovolume</option><option value="Peq. Citadino">Peq. Citadino</option>
-              <option value="Sedan">Sedan</option><option value="SUV">SUV</option>
+              <option value="Cabrio">Cabrio</option>
+              <option value="Coupe">Coupe</option>
+              <option value="Sedan">Sedan</option>
+              <option value="Peq. Citadino">Peq. Citadino</option>
+              <option value="SUV">SUV</option>
             </select>
           </div>
           <div>
@@ -279,7 +280,7 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
               <option value="Eléctrico">Eléctrico</option>
               <option value="Gasolina">Gasolina</option>
               <option value="Híbrido (Gasolina)">Híbrido (Gasolina)</option>
-              <option value="Híbrido (Diesel)">Híbrido (Diesel)</option>
+              <option value="Híbrido Plug-in Gasolina">Híbrido Plug-in Gasolina</option>
             </select>
           </div>
           <div>
@@ -344,7 +345,6 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
           </div>
         </div>
 
-        {/* Resto do formulário mantido perfeitamente igual */}
         {tagsList.length > 0 && (
           <div className="pt-6 border-t border-gray-100 dark:border-gray-800">
             <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">

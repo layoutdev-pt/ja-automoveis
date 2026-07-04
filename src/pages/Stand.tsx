@@ -6,7 +6,6 @@ import { VehicleCard } from '../components/ui/VehicleCard';
 import type { Vehicle } from '../types';
 
 // ================= COMPONENTE CUSTOMIZADO PARA OS DROPDOWNS =================
-// Este componente recria o visual premium das tuas imagens de referência
 function FilterDropdown({ 
   placeholder, 
   value, 
@@ -39,7 +38,6 @@ function FilterDropdown({
     <div className="relative" ref={dropdownRef}>
       <button 
         onClick={() => setIsOpen(!isOpen)} 
-        // O estilo bg-[#f4f4f5] com texto escuro reflete o design das tuas imagens
         className="w-full flex justify-between items-center py-2.5 px-4 bg-gray-100 dark:bg-[#f4f4f5] rounded-xl text-sm text-gray-800 font-medium border border-transparent focus:ring-2 focus:ring-ja-blue/30 outline-none transition-all shadow-sm"
       >
         <span className="truncate pr-2">{value || placeholder}</span>
@@ -89,17 +87,20 @@ function FilterDropdown({
   );
 }
 
-// ================= LISTAS FIXAS E GERAÇÃO DE DADOS =================
-const SEGMENTOS = ['Cabrio', 'Carrinha', 'Citadino', 'Coupe', 'Monovolume', 'Peq. Citadino', 'Sedan', 'SUV'];
+// ================= LISTAS FIXAS ATUALIZADAS =================
+const SEGMENTOS = ['Cabrio', 'Coupe', 'Sedan', 'Peq. Citadino', 'SUV'];
 const TRANSMISSOES = ['Automática', 'Manual'];
-const COMBUSTIVEIS = ['Diesel', 'Eléctrico', 'Gasolina', 'Híbrido (Gasolina)', 'Híbrido (Diesel)'];
+const COMBUSTIVEIS = ['Diesel', 'Eléctrico', 'Gasolina', 'Híbrido (Gasolina)', 'Híbrido Plug-in Gasolina'];
 
 const currentYear = new Date().getFullYear();
 const ANOS = Array.from({ length: currentYear - 1899 }, (_, i) => (currentYear - i).toString());
-const PRECOS = ['5000', '10000', '15000', '20000', '25000', '30000', '40000', '50000', '75000', '100000'];
 const QUILOMETROS = ['0', '10000', '25000', '50000', '75000', '100000', '125000', '150000', '200000'];
 
 const ITEMS_PER_PAGE = 9;
+
+// Limites do Slider de Preço
+const MIN_PRICE = 0;
+const MAX_PRICE = 100000;
 
 // ================= COMPONENTE PRINCIPAL DO STAND =================
 export function Stand() {
@@ -111,18 +112,20 @@ export function Stand() {
   const [page, setPage] = useState(0);
 
   // Estados dos Filtros Ativos
-  const [marcaFilter, setMarcaFilter] = useState(location.state?.searchQuery || '');
-  const [modeloFilter, setModeloFilter] = useState('');
-  const [transmissaoFilter, setTransmissaoFilter] = useState('');
+  const [marcaFilter, setMarcaFilter] = useState(location.state?.marca || location.state?.searchQuery || '');
+  const [modeloFilter, setModeloFilter] = useState(location.state?.modelo || '');
+  const [transmissaoFilter, setTransmissaoFilter] = useState(location.state?.transmissao || '');
+  const [combustivelFilter, setCombustivelFilter] = useState(location.state?.combustivel || '');
   const [segmentoFilter, setSegmentoFilter] = useState('');
-  const [combustivelFilter, setCombustivelFilter] = useState('');
   
   const [anoDesde, setAnoDesde] = useState('');
   const [anoAte, setAnoAte] = useState('');
-  const [precoMin, setPrecoMin] = useState('');
-  const [precoMax, setPrecoMax] = useState('');
   const [kmDesde, setKmDesde] = useState('');
   const [kmAte, setKmAte] = useState('');
+
+  // Estados do Range Slider de Preço
+  const [precoMin, setPrecoMin] = useState<number>(MIN_PRICE);
+  const [precoMax, setPrecoMax] = useState<number>(MAX_PRICE);
 
   // Listas Dinâmicas que virão do Admin
   const [marcasAtivas, setMarcasAtivas] = useState<string[]>([]);
@@ -134,14 +137,12 @@ export function Stand() {
       try {
         const { data } = await supabase.from('marcas').select('nome').order('nome');
         if (data) setMarcasAtivas(data.map(m => m.nome));
-      } catch (error) {
-        // Ignora silenciosamente até criarmos as tabelas na Fase 2
-      }
+      } catch (error) {}
     }
     loadMarcas();
   }, []);
 
-  // 2. CARREGAR MODELOS DA BASE DE DADOS (Depende da Marca Selecionada)
+  // 2. CARREGAR MODELOS DA BASE DE DADOS
   useEffect(() => {
     async function loadModelos() {
       if (!marcaFilter) {
@@ -154,9 +155,7 @@ export function Stand() {
           const { data } = await supabase.from('modelos').select('nome').eq('marca_id', marcaObj.id).order('nome');
           if (data) setModelosAtivos(data.map(m => m.nome));
         }
-      } catch (error) {
-        // Ignora silenciosamente
-      }
+      } catch (error) {}
     }
     loadModelos();
   }, [marcaFilter]);
@@ -165,12 +164,13 @@ export function Stand() {
   const clearFilters = () => {
     setMarcaFilter(''); setModeloFilter(''); setTransmissaoFilter('');
     setSegmentoFilter(''); setCombustivelFilter(''); setAnoDesde('');
-    setAnoAte(''); setPrecoMin(''); setPrecoMax(''); setKmDesde(''); setKmAte('');
+    setAnoAte(''); setKmDesde(''); setKmAte('');
+    setPrecoMin(MIN_PRICE); setPrecoMax(MAX_PRICE); // Reset ao preço
   };
 
   const handleMarcaChange = (val: string) => {
     setMarcaFilter(val);
-    setModeloFilter(''); // Reseta o modelo se mudar de marca!
+    setModeloFilter('');
   };
 
   // 3. PESQUISA DE VEÍCULOS NO SUPABASE
@@ -191,11 +191,12 @@ export function Stand() {
       if (anoDesde) query = query.gte('ano', parseInt(anoDesde));
       if (anoAte) query = query.lte('ano', parseInt(anoAte));
       
-      if (precoMin) query = query.gte('preco', parseInt(precoMin));
-      if (precoMax) query = query.lte('preco', parseInt(precoMax));
-      
       if (kmDesde) query = query.gte('quilometros', parseInt(kmDesde));
       if (kmAte) query = query.lte('quilometros', parseInt(kmAte));
+
+      // Filtro de Preço (numérico com base no slider)
+      if (precoMin > MIN_PRICE) query = query.gte('preco', precoMin);
+      if (precoMax < MAX_PRICE) query = query.lte('preco', precoMax);
 
       const from = currentPage * ITEMS_PER_PAGE;
       const to = from + ITEMS_PER_PAGE - 1;
@@ -237,8 +238,65 @@ export function Stand() {
     if (node) observer.current.observe(node);
   }, [loading, loadingMore, hasMore]);
 
+  // Formatador de Preços para a UI
+  const formatCurrency = (val: number) => {
+    return new Intl.NumberFormat('pt-PT', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(val);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-[#0a0a0a] pt-24 pb-12 transition-colors duration-500">
+      
+      {/* Estilos injetados para o custom Range Slider duplo funcionar perfeitamente com 2 bolinhas */}
+      <style>{`
+        .range-slider {
+          position: relative;
+          width: 100%;
+          height: 6px;
+          border-radius: 4px;
+          background: #e5e7eb;
+        }
+        .range-slider .progress {
+          position: absolute;
+          height: 100%;
+          border-radius: 4px;
+          background: #004aad;
+        }
+        .range-slider input[type="range"] {
+          position: absolute;
+          width: 100%;
+          height: 6px;
+          background: transparent;
+          pointer-events: none;
+          -webkit-appearance: none;
+          top: 0;
+        }
+        .range-slider input[type="range"]::-webkit-slider-thumb {
+          pointer-events: all;
+          width: 22px;
+          height: 22px;
+          background: #fff;
+          border: 2px solid #004aad;
+          border-radius: 50%;
+          -webkit-appearance: none;
+          cursor: pointer;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        .range-slider input[type="range"]::-moz-range-thumb {
+          pointer-events: all;
+          width: 22px;
+          height: 22px;
+          background: #fff;
+          border: 2px solid #004aad;
+          border-radius: 50%;
+          cursor: pointer;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        .dark .range-slider { background: #374151; }
+        .dark .range-slider .progress { background: #3b82f6; }
+        .dark .range-slider input[type="range"]::-webkit-slider-thumb { border-color: #3b82f6; background: #1f2937; }
+        .dark .range-slider input[type="range"]::-moz-range-thumb { border-color: #3b82f6; background: #1f2937; }
+      `}</style>
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         <div className="mb-8">
@@ -280,20 +338,54 @@ export function Stand() {
                   <FilterDropdown label="Combustível" placeholder="Combustível" value={combustivelFilter} options={COMBUSTIVEIS} onChange={setCombustivelFilter} />
                 </div>
 
+                {/* Filtro de Ranged Duplo: PREÇO */}
+                <div className="pt-4 pb-2 border-t border-gray-100 dark:border-gray-800 mt-4">
+                  <div className="flex justify-between items-center mb-6">
+                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">Preço</label>
+                    <span className="text-xs font-bold text-ja-blue bg-ja-blue/10 dark:bg-ja-blue/20 dark:text-blue-400 px-2 py-1 rounded-md">
+                      {formatCurrency(precoMin)} - {precoMax >= MAX_PRICE ? formatCurrency(MAX_PRICE) + '+' : formatCurrency(precoMax)}
+                    </span>
+                  </div>
+
+                  <div className="range-slider my-4">
+                    <div
+                      className="progress"
+                      style={{
+                        left: `${(precoMin / MAX_PRICE) * 100}%`,
+                        right: `${100 - (precoMax / MAX_PRICE) * 100}%`
+                      }}
+                    ></div>
+                    <input
+                      type="range"
+                      min={MIN_PRICE}
+                      max={MAX_PRICE}
+                      step={500}
+                      value={precoMin}
+                      onChange={(e) => {
+                        const val = Math.min(Number(e.target.value), precoMax - 500);
+                        setPrecoMin(val);
+                      }}
+                    />
+                    <input
+                      type="range"
+                      min={MIN_PRICE}
+                      max={MAX_PRICE}
+                      step={500}
+                      value={precoMax}
+                      onChange={(e) => {
+                        const val = Math.max(Number(e.target.value), precoMin + 500);
+                        setPrecoMax(val);
+                      }}
+                    />
+                  </div>
+                </div>
+
                 {/* Filtros de Ranged (Desde/Até) */}
-                <div className="pt-2">
+                <div className="pt-4 border-t border-gray-100 dark:border-gray-800">
                   <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Ano</label>
                   <div className="grid grid-cols-2 gap-2">
                     <FilterDropdown label="Ano Mínimo" placeholder="Desde" value={anoDesde} options={ANOS} onChange={setAnoDesde} />
                     <FilterDropdown label="Ano Máximo" placeholder="Até" value={anoAte} options={ANOS} onChange={setAnoAte} />
-                  </div>
-                </div>
-
-                <div className="pt-2">
-                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Preço</label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <FilterDropdown label="Preço Mínimo" placeholder="Mínimo" value={precoMin} options={PRECOS} onChange={setPrecoMin} />
-                    <FilterDropdown label="Preço Máximo" placeholder="Máximo" value={precoMax} options={PRECOS} onChange={setPrecoMax} />
                   </div>
                 </div>
 
