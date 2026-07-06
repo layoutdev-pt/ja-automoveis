@@ -87,6 +87,7 @@ export function FeaturedVehicles() {
 
   // Estados para Drag to Scroll (Arrastar com o rato)
   const [isDragging, setIsDragging] = useState(false);
+  const [hasDragged, setHasDragged] = useState(false); // NOVO ESTADO
   const [startX, setStartX] = useState(0);
   const [scrollLeft, setScrollLeft] = useState(0);
 
@@ -146,18 +147,28 @@ export function FeaturedVehicles() {
     }
   };
 
-  // Funções para Arrastar (Drag to Scroll)
+  // Funções para Arrastar (Drag to Scroll) com lógica corrigida
   const handleMouseDown = (e: React.MouseEvent) => {
     if (!carouselRef.current) return;
     setIsDragging(true);
+    setHasDragged(false); // Reseta o estado ao iniciar o clique
     setStartX(e.pageX - carouselRef.current.offsetLeft);
     setScrollLeft(carouselRef.current.scrollLeft);
   };
-  const handleMouseLeave = () => setIsDragging(false);
-  const handleMouseUp = () => setIsDragging(false);
+  
+  const handleMouseLeave = () => {
+    setIsDragging(false);
+    setHasDragged(false);
+  };
+  
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+  
   const handleMouseMove = (e: React.MouseEvent) => {
     if (!isDragging || !carouselRef.current) return;
     e.preventDefault(); // Previne seleção de texto
+    setHasDragged(true); // Marca que o utilizador arrastou
     const x = e.pageX - carouselRef.current.offsetLeft;
     const walk = (x - startX) * 2; // Velocidade do arraste (x2)
     carouselRef.current.scrollLeft = scrollLeft - walk;
@@ -249,13 +260,20 @@ export function FeaturedVehicles() {
               onMouseLeave={handleMouseLeave}
               onMouseUp={handleMouseUp}
               onMouseMove={handleMouseMove}
-              // Voltou para as classes originais do Tailwind: cursor-grab e cursor-grabbing
+              onClickCapture={(e) => {
+                // Interceta e cancela o clique se o rato foi arrastado
+                if (hasDragged) {
+                  e.stopPropagation();
+                  e.preventDefault();
+                }
+              }}
               className={`flex gap-4 sm:gap-6 overflow-x-auto hide-scrollbar pb-8 -mx-4 px-4 sm:mx-0 sm:px-0 select-none ${isDragging ? 'cursor-grabbing' : 'cursor-grab snap-x snap-mandatory'}`}
             >
               {featuredVehicles.map((vehicle) => (
                 <div 
                   key={vehicle.id} 
-                  className={`w-[25vw] min-w-[280px] lg:min-w-[320px] flex-shrink-0 ${isDragging ? 'pointer-events-none' : 'snap-start'}`}
+                  // Removida a lógica do pointer-events-none para não bloquear o botão
+                  className="w-[25vw] min-w-[280px] lg:min-w-[320px] flex-shrink-0 snap-start"
                 >
                   <VehicleCard vehicle={vehicle} />
                 </div>
