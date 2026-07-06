@@ -15,7 +15,7 @@ export function HeroSection() {
             type="video/mp4" 
           />
         </video>
-        <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]"></div>
+        <div className="absolute inset-0 bg-black/10 backdrop-blur-[1px]"></div>
       </div>
     </section>
   );
