@@ -138,33 +138,6 @@ export function FeaturedVehicles() {
     fetchVehicles();
   }, []);
 
-  // Efeito para Scroll com a Roda do Rato (Wheel Scroll)
-  useEffect(() => {
-    const slider = carouselRef.current;
-    if (!slider) return;
-
-    const handleWheel = (e: WheelEvent) => {
-      // Verifica se o carrossel está nos limites para permitir o scroll vertical normal se necessário
-      const isAtLeft = slider.scrollLeft === 0;
-      const isAtRight = Math.ceil(slider.scrollLeft + slider.clientWidth) >= slider.scrollWidth;
-
-      if (e.deltaY > 0 && !isAtRight) {
-        e.preventDefault(); // Impede o ecrã de descer
-        slider.scrollLeft += e.deltaY;
-      } else if (e.deltaY < 0 && !isAtLeft) {
-        e.preventDefault(); // Impede o ecrã de subir
-        slider.scrollLeft += e.deltaY;
-      }
-    };
-
-    // Usamos { passive: false } para poder fazer o preventDefault
-    slider.addEventListener('wheel', handleWheel, { passive: false });
-
-    return () => {
-      slider.removeEventListener('wheel', handleWheel);
-    };
-  }, [loading, featuredVehicles]); // Reaplicar quando o loading termina e o DOM é gerado
-
   // Função para rolar pelos Botões (Setas)
   const scroll = (direction: 'left' | 'right') => {
     if (carouselRef.current) {
@@ -212,7 +185,7 @@ export function FeaturedVehicles() {
             </p>
           </div>
           
-          {/* Link para o stand movido para o canto (sem as setas aqui) */}
+          {/* Link para o stand movido para o canto */}
           <div className="flex items-center gap-4">
             <Link to="/stand" className="hidden md:flex items-center gap-2 text-ja-blue font-semibold hover:text-blue-800 transition-colors">
               Ver todo o stand
@@ -258,7 +231,6 @@ export function FeaturedVehicles() {
           </div>
         ) : (
           <div className="relative group">
-            <style>{`.hide-scrollbar::-webkit-scrollbar { display: none; } .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }`}</style>
             
             {/* SETA ESQUERDA - FLUTUANTE */}
             <button 
@@ -269,6 +241,7 @@ export function FeaturedVehicles() {
               <ChevronLeft size={28} />
             </button>
 
+            
             {/* CONTENTOR DO CARROSSEL (COM DRAG EVENTS) */}
             <div 
               ref={carouselRef}
@@ -276,13 +249,12 @@ export function FeaturedVehicles() {
               onMouseLeave={handleMouseLeave}
               onMouseUp={handleMouseUp}
               onMouseMove={handleMouseMove}
-              // Alterna as classes consoante está a ser arrastado ou não para evitar conflitos de snap e clique
+              // Voltou para as classes originais do Tailwind: cursor-grab e cursor-grabbing
               className={`flex gap-4 sm:gap-6 overflow-x-auto hide-scrollbar pb-8 -mx-4 px-4 sm:mx-0 sm:px-0 select-none ${isDragging ? 'cursor-grabbing' : 'cursor-grab snap-x snap-mandatory'}`}
             >
               {featuredVehicles.map((vehicle) => (
                 <div 
                   key={vehicle.id} 
-                  // Desativa pointer-events para garantir que o utilizador não clica no "Ver Detalhes" ao tentar arrastar
                   className={`w-[25vw] min-w-[280px] lg:min-w-[320px] flex-shrink-0 ${isDragging ? 'pointer-events-none' : 'snap-start'}`}
                 >
                   <VehicleCard vehicle={vehicle} />
