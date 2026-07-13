@@ -30,7 +30,7 @@ export function Sobre() {
   ];
 
   return (
-    <div className="min-h-screen bg-white dark:bg-[#0a0a0a] pt-24 pb-20 transition-colors duration-500 overflow-hidden">
+    <div className="min-h-screen bg-white dark:bg-[#0a0a0a] pt-44 pb-20 transition-colors duration-500 overflow-hidden">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Cabeçalho da Página */}

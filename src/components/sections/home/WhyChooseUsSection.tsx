@@ -45,7 +45,7 @@ export function WhyChooseUsSection() {
         <div className="w-full lg:w-1/2 relative p-4">
           <div className="relative z-10 rounded-2xl overflow-hidden shadow-2xl">
              {/* Podes trocar esta foto pela foto da fachada do teu stand mais tarde */}
-             <img src="https://images.unsplash.com/photo-1560250097-0b93528c311a?ixlib=rb-4.0.3&auto=format&fit=crop&w=1000&q=80" alt="Instalações JA Automóveis" className="w-full h-[400px] object-cover hover:scale-105 transition-transform duration-1000" />
+             <img src="imagens/jr_stand_vid.00_00_22_17.Quadro002.png" alt="Instalações JA Automóveis" className="w-full h-[400px] object-cover hover:scale-105 transition-transform duration-1000" />
           </div>
           
           {/* Decorações dos Cantos (Iguais à tua imagem de referência) */}

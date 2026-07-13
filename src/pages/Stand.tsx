@@ -299,7 +299,7 @@ export function Stand() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
-        <div className="mb-8">
+        <div className="mb-8 pt-20">
           <h1 className="text-3xl font-bold text-ja-dark dark:text-white tracking-tight transition-colors duration-500">
             Todo o Inventário
           </h1>
