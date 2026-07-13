@@ -104,24 +104,28 @@ export function Header() {
   };
 
   // Componente do Logótipo (reutilizável para manter coerência)
-  const Logo = () => (
-    <Link to="/" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-3 shrink-0">
-      {/* Quadrado Azul com "Jl" ao estilo da imagem */}
-      <div className="w-[45px] h-[45px] lg:w-[50px] lg:h-[50px] bg-[#2557D6] flex items-center justify-center shrink-0">
-        <span className="text-white font-semibold text-2xl lg:text-3xl italic tracking-tighter" style={{ fontFamily: 'Georgia, serif' }}>
-          Jl
-        </span>
+ const Logo = () => (
+  // O 'to' deve voltar a ser "/" para ir para a página inicial ao clicar
+  <Link to="/" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-3 shrink-0">
+    
+    {/* Substituímos a div do quadrado azul por uma tag de imagem real */}
+    <img 
+      src="/logo.png" 
+      alt="Logo JA Automóveis" 
+      className="w-[45px] h-[45px] lg:w-[50px] lg:h-[50px] object-contain shrink-0" 
+    />
+
+    {/* O texto lateral continua aqui (se a sua imagem já tiver o texto incluído, pode apagar esta <div> inteira) */}
+    <div className="flex flex-col mt-0.5">
+      <div className="text-2xl lg:text-3xl font-bold tracking-tight leading-none dark:text-white transition-colors duration-500">
+        <span className="text-black dark:text-white">JA</span> <span className="text-[#2557D6]">Automóveis</span>
       </div>
-      <div className="flex flex-col mt-0.5">
-        <div className="text-2xl lg:text-3xl font-bold tracking-tight leading-none dark:text-white transition-colors duration-500">
-          <span className="text-black dark:text-white">JA</span> <span className="text-[#2557D6]">Automóveis</span>
-        </div>
-        <span className="text-[10px] text-gray-400 font-bold tracking-[0.15em] mt-1 uppercase">
-          Since 1993
-        </span>
-      </div>
-    </Link>
-  );
+      <span className="text-[10px] text-gray-400 font-bold tracking-[0.15em] mt-1 uppercase">
+        Since 1993
+      </span>
+    </div>
+  </Link>
+);
 
   return (
     <>
@@ -279,8 +283,7 @@ export function Header() {
       </header>
 
       {/* ================= MENU MOBILE (OVERLAY) ================= */}
-      <div className={`fixed inset-0 bg-[#f8f9fa] dark:bg-[#0a0a0a] z-[100] flex-col transition-transform duration-300 ${isMobileMenuOpen ? 'translate-x-0' : 'translate-x-full'} lg:hidden`}>
-        
+<div className={`fixed inset-0 bg-[#f8f9fa] dark:bg-[#0a0a0a] z-[100] flex flex-col transition-transform duration-300 ${isMobileMenuOpen ? 'translate-x-0' : 'translate-x-full'} lg:hidden`}>        
         {/* Cabeçalho do Menu Mobile */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-[#0a0a0a] shrink-0">
           <Logo />
