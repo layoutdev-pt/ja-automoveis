@@ -1,69 +1,75 @@
 import { useState, useEffect, useRef } from 'react';
 import { NavLink, Link, useNavigate } from 'react-router-dom';
-import { Search, Loader2, ChevronRight, Menu, X } from 'lucide-react';
+import { Search, Menu, X, Loader2, ChevronRight } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import type { Vehicle } from '../../types';
 
 export function Header() {
-  const [isScrolled, setIsScrolled] = useState(false);
-  
-  // Estado para controlar o Menu Mobile (Hamburger)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  
+  const [isScrolled, setIsScrolled] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const navigate = useNavigate();
+
+  // ================= ESTADOS DA PESQUISA NO SUPABASE =================
+  const [showDropdown, setShowDropdown] = useState(false);
   const [searchResults, setSearchResults] = useState<Vehicle[]>([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [showDropdown, setShowDropdown] = useState(false);
-  const [totalCount, setTotalCount] = useState<number | null>(0);
-  
+  const [totalCount, setTotalCount] = useState(0);
   const dropdownRef = useRef<HTMLDivElement>(null);
-  const mobileMenuRef = useRef<HTMLDivElement>(null);
-  const navigate = useNavigate();
+  const mobileDropdownRef = useRef<HTMLDivElement>(null); // Ref adicionado para o mobile
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('pt-PT', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(price);
   };
 
+  // Efeito do Scroll para a função de Encolher
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 20);
-      // Fechar o menu mobile ao fazer scroll
-      if (window.scrollY > 20 && isMobileMenuOpen) {
-        setIsMobileMenuOpen(false);
-      }
     };
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Controla o scroll da página quando o menu mobile é aberto
+  useEffect(() => {
+    if (isMobileMenuOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
   }, [isMobileMenuOpen]);
 
-  // Fechar o dropdown de pesquisa se clicar fora
+  // ================= EFEITOS DA PESQUISA =================
+  // 1. Fecha o dropdown se clicar fora dele (agora verifica desktop e mobile)
   useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+    const handleClick = (e: MouseEvent) => {
+      const inDesktop = dropdownRef.current?.contains(e.target as Node);
+      const inMobile = mobileDropdownRef.current?.contains(e.target as Node);
+
+      if (!inDesktop && !inMobile) {
         setShowDropdown(false);
       }
-      // Fechar menu mobile se clicar fora
-      if (isMobileMenuOpen && mobileMenuRef.current && !mobileMenuRef.current.contains(event.target as Node)) {
-        setIsMobileMenuOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [isMobileMenuOpen]);
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
 
+  // 2. Pesquisa em tempo real na Base de Dados (Supabase)
   useEffect(() => {
-    if (!searchQuery.trim()) {
-      setSearchResults([]);
-      setShowDropdown(false);
-      return;
-    }
-
     const fetchResults = async () => {
+      if (!searchQuery.trim()) {
+        setSearchResults([]);
+        setTotalCount(0);
+        return;
+      }
+
       setIsSearching(true);
-      setShowDropdown(true);
-      
       try {
-        const { data, count, error } = await supabase
+        const { data, error, count } = await supabase
           .from('vehicles')
           .select('*', { count: 'exact' })
           .eq('em_stock', true)
@@ -72,117 +78,248 @@ export function Header() {
 
         if (error) throw error;
         setSearchResults(data || []);
-        setTotalCount(count);
-      } catch (error) {
-        console.error('Erro na pesquisa rápida:', error);
+        setTotalCount(count || 0);
+      } catch (err) {
+        console.error('Erro na pesquisa rápida:', err);
       } finally {
         setIsSearching(false);
       }
     };
 
-    const timeoutId = setTimeout(fetchResults, 300);
+    // Pequeno atraso para não fazer requests a cada letra digitada
+    const timeoutId = setTimeout(() => {
+      if (showDropdown) fetchResults();
+    }, 300);
+
     return () => clearTimeout(timeoutId);
-  }, [searchQuery]);
+  }, [searchQuery, showDropdown]);
 
   const handleSearch = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (searchQuery.trim()) {
+      setIsMobileMenuOpen(false);
+      setShowDropdown(false); // Esconde o dropdown ao ir para a página do Stand
       navigate('/stand', { state: { searchQuery } });
-    } else {
-      navigate('/stand');
     }
-    setShowDropdown(false);
-    setIsMobileMenuOpen(false); // Fecha o menu mobile ao pesquisar
   };
 
-  // Classes para os links no Desktop
-  const navLinkClasses = ({ isActive }: { isActive: boolean }) => 
-    `text-sm font-semibold transition-all duration-300 pb-1 ${
-      isActive 
-        ? 'text-ja-blue border-b-2 border-ja-blue' 
-        : 'text-gray-600 dark:text-gray-300 hover:text-ja-blue dark:hover:text-ja-blue border-b-2 border-transparent'
-    }`;
-
-  // Classes para os links no Mobile Menu
-  const mobileNavLinkClasses = ({ isActive }: { isActive: boolean }) => 
-    `block px-4 py-3 text-base font-semibold transition-all duration-300 rounded-xl ${
-      isActive 
-        ? 'text-ja-blue bg-blue-50 dark:bg-blue-900/20' 
-        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
-    }`;
+  // Componente do Logótipo (reutilizável para manter coerência)
+  const Logo = () => (
+    <Link to="/" onClick={() => setIsMobileMenuOpen(false)} className="flex items-center gap-3 shrink-0">
+      {/* Quadrado Azul com "Jl" ao estilo da imagem */}
+      <div className="w-[45px] h-[45px] lg:w-[50px] lg:h-[50px] bg-[#2557D6] flex items-center justify-center shrink-0">
+        <span className="text-white font-semibold text-2xl lg:text-3xl italic tracking-tighter" style={{ fontFamily: 'Georgia, serif' }}>
+          Jl
+        </span>
+      </div>
+      <div className="flex flex-col mt-0.5">
+        <div className="text-2xl lg:text-3xl font-bold tracking-tight leading-none dark:text-white transition-colors duration-500">
+          <span className="text-black dark:text-white">JA</span> <span className="text-[#2557D6]">Automóveis</span>
+        </div>
+        <span className="text-[10px] text-gray-400 font-bold tracking-[0.15em] mt-1 uppercase">
+          Since 1993
+        </span>
+      </div>
+    </Link>
+  );
 
   return (
-    <header
-      className={`fixed top-0 w-full z-50 transition-all duration-500 ease-in-out flex justify-center ${
-        isScrolled ? 'pt-4' : 'pt-0'
-      }`}
-      ref={mobileMenuRef}
-    >
-      <div
-        className={`relative flex items-center justify-between transition-all duration-500 ease-in-out ${
-          isScrolled
-            ? 'w-11/12 max-w-7xl bg-white/95 dark:bg-gray-900/95 backdrop-blur-md shadow-lg rounded-full py-3 px-4 sm:px-8 border border-gray-200 dark:border-gray-800'
-            : 'w-full bg-white dark:bg-[#0a0a0a] py-4 sm:py-5 px-4 sm:px-6 md:px-12 lg:px-16 border-b border-gray-100 dark:border-gray-900'
-        }`}
-      >
+    <>
+      <header className={`fixed top-0 w-full z-50 transition-all duration-500 ease-in-out flex flex-col items-center ${isScrolled ? 'pt-4' : 'pt-0'}`}>
         
-        {/* 1. Zona Esquerda (Logótipo) */}
-        <div className="flex justify-start z-20">
-          <Link to="/" className="flex items-center gap-1 sm:gap-2" onClick={() => setIsMobileMenuOpen(false)}>
-            <img 
-              src="/logo.png" 
-              alt="JA Automóveis Logo" 
-              className="h-7 sm:h-8 md:h-10 object-contain dark:invert transition-all duration-500"
-              onError={(e) => {
-                e.currentTarget.style.display = 'none';
-                e.currentTarget.nextElementSibling?.classList.remove('hidden');
-              }}
-            />
+        {/* ================= TOP BAR UTILITÁRIA ================= */}
+        <div className={`w-full bg-[#111827] text-slate-300 text-sm px-4 lg:px-8 transition-all duration-500 overflow-hidden flex flex-col justify-center ${isScrolled ? 'max-h-0 opacity-0 border-transparent py-0' : 'max-h-20 opacity-100 border-b border-slate-800 py-2'}`}>
+          <div className="max-w-7xl mx-auto w-full flex justify-end lg:justify-between items-center gap-4">
             
-            <span className="text-lg sm:text-xl font-bold text-ja-dark dark:text-white transition-colors duration-500 tracking-tight leading-none sm:leading-normal">
-              JA <span className="text-ja-blue hidden sm:inline">Automóveis</span>
-              <span className="text-ja-blue sm:hidden block text-sm">Automóveis</span>
-            </span>
-          </Link>
+            {/* Lado Esquerdo: Morada e Email (Apenas Desktop) */}
+            <div className="hidden lg:flex items-center gap-6 font-medium tracking-wide">
+              <div className="flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.243-4.243a8 8 0 1111.314 0z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                <span>Covilhã, Portugal</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+                <span>geral@jaautomoveis.pt</span>
+              </div>
+            </div>
+
+            {/* Lado Direito: Telefone (Visível Mobile e Desktop) */}
+            <div className="flex items-center gap-2 font-medium tracking-wide text-[13px] sm:text-sm">
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+              </svg>
+              <span>+351 961 650 396</span>
+            </div>
+            
+          </div>
         </div>
 
-        {/* 2. Zona Central (Links - Desktop) */}
-        <nav className="hidden xl:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 items-center gap-8 z-10 whitespace-nowrap">
-          <NavLink to="/" className={navLinkClasses}>Início</NavLink>
-          <NavLink to="/stand" className={navLinkClasses}>Stand</NavLink>
-          <NavLink to="/importacao" className={navLinkClasses}>Importação</NavLink>
-          <NavLink to="/sobre" className={navLinkClasses}>Sobre Nós</NavLink>
-          <NavLink to="/contactos" className={navLinkClasses}>Contactos</NavLink>
-        </nav>
+        {/* ================= NAVBAR PRINCIPAL (Com função de encolher) ================= */}
+        <nav className={`transition-all duration-500 ease-in-out flex items-center justify-center ${
+          isScrolled 
+            ? 'w-11/12 max-w-7xl bg-white/95 dark:bg-gray-900/95 backdrop-blur-md shadow-lg rounded-full py-3 px-4 sm:px-8 border border-gray-200 dark:border-gray-800' 
+            : 'w-full bg-[#f8f9fa] dark:bg-[#0a0a0a] shadow-sm px-4 py-7 lg:px-8 border-b border-gray-200 dark:border-gray-800'
+        }`}>
+          <div className="w-full max-w-7xl mx-auto flex items-center justify-between">
+            
+            <Logo />
 
-        {/* 3. Zona Direita (Pesquisa + Telefone + Hamburger) */}
-        <div className="flex justify-end items-center gap-2 sm:gap-4 lg:gap-6 z-20">
-          
-          {/* Barra de Pesquisa */}
-          <div 
-            // CORREÇÃO: Foi removida a classe 'sm:max-w-full' que estava a conflituar com os tamanhos definidos.
-            className={`relative w-full transition-all duration-500 max-w-[140px] ${isScrolled ? 'sm:max-w-[240px]' : 'sm:max-w-[240px]'}`} 
-            ref={dropdownRef}
-          >
-            <form 
-              onSubmit={handleSearch}
-              className="flex items-center w-full bg-gray-100 dark:bg-gray-800 rounded-full px-3 sm:px-4 py-2 transition-all duration-300 border border-transparent focus-within:border-gray-300 dark:focus-within:border-gray-600 focus-within:bg-white dark:focus-within:bg-gray-900 shadow-sm"
+            {/* Bloco 2: Navegação Desktop */}
+            <ul className="hidden lg:flex items-center gap-8 text-slate-700 dark:text-slate-300 font-semibold text-[15px]">
+              <li><NavLink to="/" className={({ isActive }) => `transition-colors ${isActive ? 'text-[#2557D6] dark:text-blue-400' : 'hover:text-[#2557D6] dark:hover:text-blue-400'}`}>Início</NavLink></li>
+              <li><NavLink to="/stand" className={({ isActive }) => `transition-colors ${isActive ? 'text-[#2557D6] dark:text-blue-400' : 'hover:text-[#2557D6] dark:hover:text-blue-400'}`}>Stand</NavLink></li>
+              <li><NavLink to="/importacao" className={({ isActive }) => `transition-colors ${isActive ? 'text-[#2557D6] dark:text-blue-400' : 'hover:text-[#2557D6] dark:hover:text-blue-400'}`}>Importação</NavLink></li>
+              <li><NavLink to="/sobre" className={({ isActive }) => `transition-colors ${isActive ? 'text-[#2557D6] dark:text-blue-400' : 'hover:text-[#2557D6] dark:hover:text-blue-400'}`}>Sobre nós</NavLink></li>
+              <li><NavLink to="/contactos" className={({ isActive }) => `transition-colors ${isActive ? 'text-[#2557D6] dark:text-blue-400' : 'hover:text-[#2557D6] dark:hover:text-blue-400'}`}>Contactos</NavLink></li>
+            </ul>
+
+            {/* Bloco 3: Pesquisa Desktop */}
+            <div className="hidden lg:block shrink-0 relative" ref={dropdownRef}>
+              <form onSubmit={handleSearch} className="hidden md:flex items-center relative">
+                <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input 
+                  type="text" 
+                  placeholder="Pesquisar..." 
+                  value={searchQuery}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    if (e.target.value.trim() !== '') {
+                      setShowDropdown(true);
+                    } else {
+                      setShowDropdown(false);
+                    }
+                  }}
+                  onFocus={() => searchQuery.trim() && setShowDropdown(true)}
+                  autoComplete="off"
+                  className="bg-white dark:bg-[#18181b] rounded-full py-2.5 pl-11 pr-4 text-[14px] focus:outline-none focus:ring-2 focus:ring-[#2557D6]/50 w-[240px] text-slate-700 dark:text-slate-200 placeholder-slate-400 font-medium transition-all border border-gray-200 dark:border-gray-800"
+                />
+              </form>
+
+              {/* Dropdown de Resultados em Tempo Real */}
+              {showDropdown && (
+                <div className="absolute top-full right-0 mt-4 w-[300px] sm:w-[350px] md:w-[450px] bg-white dark:bg-[#0a0a0a] rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-800 overflow-hidden animate-in fade-in slide-in-from-top-4 z-50 transition-colors duration-500">
+                  
+                  {isSearching ? (
+                    <div className="p-6 flex items-center justify-center text-gray-500 dark:text-gray-400 text-sm font-medium">
+                      <Loader2 size={20} className="animate-spin mr-3 text-ja-blue" />
+                      A procurar...
+                    </div>
+                  ) : searchResults.length === 0 ? (
+                    <div className="p-6 text-center text-gray-500 dark:text-gray-400 text-sm font-medium">
+                      Sem resultados para "{searchQuery}".
+                    </div>
+                  ) : (
+                    <div className="flex flex-col">
+                      {searchResults.map((vehicle) => (
+                        <Link 
+                          key={vehicle.id}
+                          to={`/stand/${vehicle.id}`}
+                          onClick={() => setShowDropdown(false)}
+                          className="flex items-center gap-3 sm:gap-4 p-3 mx-2 mt-2 hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded-xl transition-colors duration-300 group"
+                        >
+                          <div className="w-12 h-8 sm:w-14 sm:h-10 flex-shrink-0 rounded-lg overflow-hidden bg-gray-200 dark:bg-gray-800">
+                            <img 
+                              src={vehicle.fotos[0]} 
+                              alt={vehicle.modelo} 
+                              className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                            />
+                          </div>
+                          
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-bold text-ja-dark dark:text-white truncate group-hover:text-ja-blue transition-colors text-xs sm:text-sm">
+                              {vehicle.marca} {vehicle.modelo}
+                            </h4>
+                            <div className="flex items-center gap-1.5 text-[10px] sm:text-xs text-gray-500 font-medium">
+                              <span>{vehicle.ano}</span>
+                              <span>•</span>
+                              <span className="truncate">{vehicle.versao}</span>
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-ja-dark dark:text-white text-xs sm:text-sm text-right">
+                              {formatPrice(vehicle.preco)}
+                            </span>
+                            <div className="hidden sm:flex bg-gray-100 dark:bg-gray-800 p-1 rounded-full text-gray-400 group-hover:bg-ja-blue/10 group-hover:text-ja-blue transition-colors">
+                              <ChevronRight size={16} />
+                            </div>
+                          </div>
+                        </Link>
+                      ))}
+                      
+                      <div className="p-3 bg-gray-50 dark:bg-gray-900 mt-2 border-t border-gray-100 dark:border-gray-800">
+                        <button 
+                          onClick={() => handleSearch()}
+                          className="w-full py-2 flex items-center justify-center gap-2 text-sm font-bold text-[#2557D6] hover:text-[#1d4ed8] transition-colors"
+                        >
+                          Ver todos os {totalCount} resultados
+                          <Search size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Botão Menu Mobile */}
+            <button 
+              onClick={() => setIsMobileMenuOpen(true)}
+              className="lg:hidden p-2 text-slate-700 dark:text-slate-300 transition-colors"
             >
-              <Search size={16} className="text-gray-400 min-w-max sm:w-[18px] sm:h-[18px]" />
-              <input
-                type="text"
+              <Menu size={28} />
+            </button>
+          </div>
+        </nav>
+      </header>
+
+      {/* ================= MENU MOBILE (OVERLAY) ================= */}
+      <div className={`fixed inset-0 bg-[#f8f9fa] dark:bg-[#0a0a0a] z-[100] flex-col transition-transform duration-300 ${isMobileMenuOpen ? 'translate-x-0' : 'translate-x-full'} lg:hidden`}>
+        
+        {/* Cabeçalho do Menu Mobile */}
+        <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-[#0a0a0a] shrink-0">
+          <Logo />
+          <button 
+            onClick={() => setIsMobileMenuOpen(false)}
+            className="p-2 text-slate-800 dark:text-slate-200 transition-colors"
+          >
+            <X size={28} />
+          </button>
+        </div>
+
+        {/* Corpo do Menu Mobile (Scrollável) */}
+        <div className="flex-1 overflow-y-auto px-4 py-6">
+          
+          {/* Caixa de Pesquisa Mobile e Dropdown envoltos no novo Ref */}
+          <div className="relative w-full mb-6" ref={mobileDropdownRef}>
+            <form onSubmit={handleSearch} className="relative w-full">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <input 
+                type="text" 
+                placeholder="Pesquisar veículos..." 
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  if (e.target.value.trim() !== '') {
+                    setShowDropdown(true);
+                  } else {
+                    setShowDropdown(false);
+                  }
+                }}
                 onFocus={() => searchQuery.trim() && setShowDropdown(true)}
-                placeholder="Pesquisar..."
-                className="w-full bg-transparent outline-none border-none text-xs sm:text-sm ml-2 text-ja-dark dark:text-white placeholder-gray-400"
                 autoComplete="off"
+                className="bg-gray-100 dark:bg-[#18181b] rounded-lg py-3 pl-10 pr-4 text-[15px] focus:outline-none focus:ring-2 focus:ring-[#2557D6] w-full text-slate-800 dark:text-slate-200 placeholder-slate-500 font-medium border border-transparent dark:border-gray-800"
               />
             </form>
 
+            {/* Dropdown de Resultados Mobile */}
             {showDropdown && (
-              <div className="absolute top-full right-[-40px] sm:right-0 mt-4 w-[300px] sm:w-[350px] md:w-[450px] bg-white dark:bg-[#0a0a0a] rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-800 overflow-hidden animate-in fade-in slide-in-from-top-4 z-50 transition-colors duration-500">
-                
+              <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-[#0a0a0a] rounded-2xl shadow-2xl border border-gray-100 dark:border-gray-800 overflow-hidden animate-in fade-in slide-in-from-top-4 z-50 transition-colors duration-500">
                 {isSearching ? (
                   <div className="p-6 flex items-center justify-center text-gray-500 dark:text-gray-400 text-sm font-medium">
                     <Loader2 size={20} className="animate-spin mr-3 text-ja-blue" />
@@ -198,7 +335,10 @@ export function Header() {
                       <Link 
                         key={vehicle.id}
                         to={`/stand/${vehicle.id}`}
-                        onClick={() => setShowDropdown(false)}
+                        onClick={() => {
+                          setShowDropdown(false);
+                          setIsMobileMenuOpen(false);
+                        }}
                         className="flex items-center gap-3 sm:gap-4 p-3 mx-2 mt-2 hover:bg-gray-50 dark:hover:bg-gray-800/50 rounded-xl transition-colors duration-300 group"
                       >
                         <div className="w-12 h-8 sm:w-14 sm:h-10 flex-shrink-0 rounded-lg overflow-hidden bg-gray-200 dark:bg-gray-800">
@@ -224,9 +364,6 @@ export function Header() {
                           <span className="font-bold text-ja-dark dark:text-white text-xs sm:text-sm text-right">
                             {formatPrice(vehicle.preco)}
                           </span>
-                          <div className="hidden sm:flex bg-gray-100 dark:bg-gray-800 p-1 rounded-full text-gray-400 group-hover:bg-ja-blue/10 group-hover:text-ja-blue transition-colors">
-                            <ChevronRight size={16} />
-                          </div>
                         </div>
                       </Link>
                     ))}
@@ -234,7 +371,7 @@ export function Header() {
                     <div className="p-3 bg-gray-50 dark:bg-gray-900 mt-2 border-t border-gray-100 dark:border-gray-800">
                       <button 
                         onClick={() => handleSearch()}
-                        className="w-full py-2 flex items-center justify-center gap-2 text-sm font-bold text-ja-blue hover:text-blue-700 transition-colors"
+                        className="w-full py-2 flex items-center justify-center gap-2 text-sm font-bold text-[#2557D6] hover:text-[#1d4ed8] transition-colors"
                       >
                         Ver todos os {totalCount} resultados
                         <Search size={14} />
@@ -245,42 +382,42 @@ export function Header() {
               </div>
             )}
           </div>
-
           
-
-          {/* Botão Hamburger (Mobile) */}
-          <button 
-            className="xl:hidden flex items-center justify-center p-2 rounded-full text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            aria-label="Toggle Menu"
-          >
-            {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-          </button>
-
+          <ul className="flex flex-col gap-1 text-[16px]">
+            {[
+              { path: '/', label: 'Início' },
+              { path: '/stand', label: 'Stand' },
+              { path: '/importacao', label: 'Importação' },
+              { path: '/sobre', label: 'Sobre nós' },
+              { path: '/contactos', label: 'Contactos' }
+            ].map((link) => (
+              <li key={link.path}>
+                <NavLink 
+                  to={link.path}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                  className={({ isActive }) => `block px-4 py-3.5 font-bold rounded-lg transition-colors ${
+                    isActive 
+                      ? 'bg-[#EEF2FF] dark:bg-blue-900/30 text-[#2557D6] dark:text-blue-400' 
+                      : 'text-slate-800 dark:text-slate-200 hover:bg-gray-100 dark:hover:bg-gray-800'
+                  }`}
+                >
+                  {link.label}
+                </NavLink>
+              </li>
+            ))}
+          </ul>
         </div>
-        
-        {/* Mobile Menu Dropdown */}
-        <div 
-          className={`xl:hidden absolute left-0 right-0 w-full bg-white/95 dark:bg-gray-900/95 backdrop-blur-xl shadow-2xl border-t border-gray-100 dark:border-gray-800 transition-all duration-300 overflow-hidden ${
-            isMobileMenuOpen 
-              ? 'top-full opacity-100 pointer-events-auto mt-2 rounded-2xl max-h-[500px]' 
-              : 'top-[80%] opacity-0 pointer-events-none max-h-0'
-          }`}
-          style={isScrolled ? { width: 'calc(100% + 2rem)', marginLeft: '-1rem' } : {}}
-        >
-          <div className="flex flex-col p-4 gap-2">
-            <NavLink to="/" onClick={() => setIsMobileMenuOpen(false)} className={mobileNavLinkClasses}>Início</NavLink>
-            <NavLink to="/stand" onClick={() => setIsMobileMenuOpen(false)} className={mobileNavLinkClasses}>Stand</NavLink>
-            <NavLink to="/importacao" onClick={() => setIsMobileMenuOpen(false)} className={mobileNavLinkClasses}>Importação</NavLink>
-            <NavLink to="/sobre" onClick={() => setIsMobileMenuOpen(false)} className={mobileNavLinkClasses}>Sobre Nós</NavLink>
-            <NavLink to="/contactos" onClick={() => setIsMobileMenuOpen(false)} className={mobileNavLinkClasses}>Contactos</NavLink>
-            
-            
-            </div>
+
+        {/* Rodapé do Menu Mobile (Telefone) */}
+        <div className="px-4 py-6 border-t border-gray-200 dark:border-gray-800 shrink-0 bg-[#f8f9fa] dark:bg-[#0a0a0a] mt-auto">
+          <div className="flex items-center gap-3 text-[#2557D6] dark:text-blue-400 font-bold text-lg px-2">
+            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+            </svg>
+            <span>+351 961 650 396</span>
           </div>
         </div>
-        
-
-    </header>
+      </div>
+    </>
   );
 }
