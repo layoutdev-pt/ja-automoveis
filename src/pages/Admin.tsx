@@ -127,8 +127,7 @@ export function Admin() {
     <div className="min-h-screen bg-gray-50 dark:bg-[#0a0a0a] flex flex-col md:flex-row pt-20 transition-colors duration-500">
       
       {/* SIDEBAR */}
-      <aside className="w-full md:w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 flex flex-col transition-colors duration-500">
-        <div className="p-6 border-b border-gray-100 dark:border-gray-800">
+<aside className="w-full md:w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 flex flex-col pt-20 transition-colors duration-500">        <div className="p-6 border-b border-gray-100 dark:border-gray-800">
           <h2 className="text-xl font-bold text-ja-dark dark:text-white">Painel de Gestão</h2>
           <p className="text-sm text-gray-500">Área Administrativa</p>
         </div>
@@ -150,7 +149,7 @@ export function Admin() {
       </aside>
 
       {/* CONTEÚDO PRINCIPAL */}
-      <main className="flex-1 p-4 md:p-8 overflow-y-auto">
+      <main className="flex-1 p-4 md:p-20 overflow-y-auto">
         <div className="max-w-6xl mx-auto">
           
           {/* ================= VISTA: INVENTÁRIO ================= */}
