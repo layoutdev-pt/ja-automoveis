@@ -61,7 +61,7 @@ export function HomeContact() {
           {/* Mapa Integrado (Google Maps) */}
           <div className="h-[450px] w-full bg-gray-200 dark:bg-gray-900 rounded-2xl overflow-hidden shadow-lg border border-gray-100 dark:border-gray-800 transition-colors duration-500">
             <iframe
-              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3034.4214437257323!2d-7.4988771!3d40.2709214!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0xd3d22b311210871%3A0xb3fc6c7dfecb001a!2sCovilh%C3%A3!5e0!3m2!1spt-PT!2spt!4v1700000000000!5m2!1spt-PT!2spt"
+              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d2996.095351288633!2d-7.492406688490895!3d40.283470671342315!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0xd3d2366e4f7eb7b%3A0xd6dc5dab865a83e9!2sJA%20Autom%C3%B3veis!5e1!3m2!1spt-PT!2spt!4v1784209768863!5m2!1spt-PT!2spt"
               width="100%"
               height="100%"
               style={{ border: 0 }}
