@@ -29,7 +29,7 @@ export function HeroSection() {
       </div>
 
       {/* BARRA DE FILTROS FLUTUANTE TRANSPARENTE NO TOPO */}
-      <div className="absolute top-0 left-0 w-full z-20 pt-6 md:pt-40 px-4 sm:px-6 lg:px-8">
+      <div className="absolute top-0 left-0 w-full z-20 pt-6 md:pt-220 px-4 sm:px-6 lg:px-8">
         <HomeFilterBar />
       </div>
 
