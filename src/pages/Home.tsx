@@ -1,3 +1,4 @@
+import { HomeFilterBar } from '../components/sections/home/HomeFilterBar';
 import { HeroSection } from '../components/sections/home/HeroSection';
 import { FeaturedVehicles } from '../components/sections/home/FeaturedVehicles';
 import { BrandCarousel } from '../components/sections/home/BrandCarousel';
@@ -11,6 +12,7 @@ import { HomeContact } from '../components/sections/home/HomeContact';
 export function Home() {
   return (
     <div className="flex flex-col w-full">
+
       {/* 1. Secção de Hero (video) */}
       <HeroSection />
       
