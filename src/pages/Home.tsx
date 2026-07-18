@@ -1,4 +1,3 @@
-import { HomeFilterBar } from '../components/sections/home/HomeFilterBar';
 import { HeroSection } from '../components/sections/home/HeroSection';
 import { FeaturedVehicles } from '../components/sections/home/FeaturedVehicles';
 import { BrandCarousel } from '../components/sections/home/BrandCarousel';

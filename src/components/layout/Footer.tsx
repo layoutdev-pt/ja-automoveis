@@ -37,7 +37,8 @@ export function Footer() {
             <h4 className="text-lg font-semibold mb-6 uppercase tracking-wider text-ja-dark dark:text-gray-200 transition-colors duration-500">Stand & Recursos</h4>
             <ul className="space-y-4">
               <li><Link to="/stand" className="text-gray-500 dark:text-gray-400 hover:text-ja-blue dark:hover:text-white transition-colors text-sm">Ver Catálogo</Link></li>
-              <li><Link to="/importacao" className="text-gray-500 dark:text-gray-400 hover:text-ja-blue dark:hover:text-white transition-colors text-sm">Processo de Importação</Link></li>
+              {/* ALTERAÇÃO: Novo texto aplicado conforme as instruções do PDF */}
+              <li><Link to="/importacao" className="text-gray-500 dark:text-gray-400 hover:text-ja-blue dark:hover:text-white transition-colors text-sm">Importamos o seu carro</Link></li>
               <li><Link to="/contactos" className="text-gray-500 dark:text-gray-400 hover:text-ja-blue dark:hover:text-white transition-colors text-sm">Fale Connosco</Link></li>
             </ul>
           </div>
@@ -46,9 +47,10 @@ export function Footer() {
           <div>
             <h4 className="text-lg font-semibold mb-6 uppercase tracking-wider text-ja-dark dark:text-gray-200 transition-colors duration-500">Termos Legais</h4>
             <ul className="space-y-4">
-              <li><a href="#" className="text-gray-500 dark:text-gray-400 hover:text-ja-blue dark:hover:text-white transition-colors text-sm">Política de Privacidade</a></li>
-              <li><a href="#" className="text-gray-500 dark:text-gray-400 hover:text-ja-blue dark:hover:text-white transition-colors text-sm">Termos e Condições</a></li>
-              <li><a href="#" className="text-gray-500 dark:text-gray-400 hover:text-ja-blue dark:hover:text-white transition-colors text-sm">Livro de Reclamações</a></li>
+              <li><Link to="/politica-privacidade" className="text-gray-500 dark:text-gray-400 hover:text-ja-blue dark:hover:text-white transition-colors text-sm">Política de Privacidade</Link></li>
+              <li><Link to="/termos-condicoes" className="text-gray-500 dark:text-gray-400 hover:text-ja-blue dark:hover:text-white transition-colors text-sm">Termos e Condições</Link></li>
+              {/* ALTERAÇÃO: Link externo direto para o Livro de Reclamações */}
+              <li><a href="https://www.livroreclamacoes.pt/Inicio" target="_blank" rel="noopener noreferrer" className="text-gray-500 dark:text-gray-400 hover:text-ja-blue dark:hover:text-white transition-colors text-sm">Livro de Reclamações</a></li>
             </ul>
           </div>
 
@@ -59,8 +61,9 @@ export function Footer() {
           <p className="text-gray-400 dark:text-gray-500 text-xs font-medium transition-colors duration-500">
             &copy; {new Date().getFullYear()} JA Automóveis. Todos os direitos reservados.
           </p>
+          {/* ALTERAÇÃO: Hyperlink para o site da Layout Agency adicionado na tag <a> */}
           <p className="text-gray-400 dark:text-gray-500 text-xs font-medium transition-colors duration-500">
-            Desenvolvido por: <span className="font-bold text-gray-500 dark:text-gray-300 transition-colors duration-500">Layout Agency</span>
+            Desenvolvido por: <a href="https://layoutagency.pt/" target="_blank" rel="noopener noreferrer" className="font-bold text-gray-500 dark:text-gray-300 hover:text-ja-blue dark:hover:text-ja-blue transition-colors duration-500">Layout Agency</a>
           </p>
         </div>
       </div>
