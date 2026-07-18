@@ -37,8 +37,8 @@ export function Footer() {
             <h4 className="text-lg font-semibold mb-6 uppercase tracking-wider text-ja-dark dark:text-gray-200 transition-colors duration-500">Stand & Recursos</h4>
             <ul className="space-y-4">
               <li><Link to="/stand" className="text-gray-500 dark:text-gray-400 hover:text-ja-blue dark:hover:text-white transition-colors text-sm">Ver Catálogo</Link></li>
-              {/* ALTERAÇÃO: Novo texto aplicado conforme as instruções do PDF */}
-              <li><Link to="/importacao" className="text-gray-500 dark:text-gray-400 hover:text-ja-blue dark:hover:text-white transition-colors text-sm">Importamos o seu carro</Link></li>
+              {/* ALTERAÇÃO: Link externo direto para o WhatsApp em vez da página interna */}
+              <li><a href="https://wa.link/vygwxb" target="_blank" rel="noopener noreferrer" className="text-gray-500 dark:text-gray-400 hover:text-ja-blue dark:hover:text-white transition-colors text-sm">Importamos o seu carro</a></li>
               <li><Link to="/contactos" className="text-gray-500 dark:text-gray-400 hover:text-ja-blue dark:hover:text-white transition-colors text-sm">Fale Connosco</Link></li>
             </ul>
           </div>

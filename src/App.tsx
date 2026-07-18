@@ -13,6 +13,8 @@ import { Admin } from './pages/Admin';
 import { Importacao } from './pages/Importacao';
 import { Contactos } from './pages/Contactos';
 import { Sobre } from './pages/Sobre';
+import { PrivacyPolicy } from './pages/PrivacyPolicy';
+import { TermsConditions } from './pages/TermsConditions';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user } = useAuth();
@@ -39,6 +41,8 @@ function AppRoutes() {
             <Route path="/importacao" element={<Importacao />} />
             <Route path="/contactos" element={<Contactos />} />
             <Route path="/sobre" element={<Sobre />} />
+            <Route path="/politica-privacidade" element={<PrivacyPolicy />} />
+            <Route path="/termos-condicoes" element={<TermsConditions />} />
             
 
             
