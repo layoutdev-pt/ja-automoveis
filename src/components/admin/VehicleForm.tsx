@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { UploadCloud, X, Loader2, Save, FileText, ImagePlus, Plus, Trash2 } from 'lucide-react';
+import { UploadCloud, X, Loader2, Save, FileText, ImagePlus, Plus, Trash2, Camera, RotateCcw } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import type { Vehicle } from '../../types';
 
@@ -13,16 +13,127 @@ type FormImage = { file?: File; url?: string };
 type MarcaData = { id: string; nome: string; };
 type ModeloData = { id: string; marca_id: string; nome: string; };
 
+// ================= COMPONENTE DE CHIPS (100% SUPABASE) =================
+function EquipmentSection({ title, categoria, selected, setSelected }: { 
+  title: string, categoria: string, selected: string[], setSelected: (val: string[]) => void 
+}) {
+  const [dbOptions, setDbOptions] = useState<string[]>([]);
+  const [inputValue, setInputValue] = useState('');
+
+  // Carrega as opções APENAS do Supabase
+  useEffect(() => {
+    async function loadDbOptions() {
+      const { data } = await supabase.from('equipamentos').select('nome').eq('categoria', categoria);
+      if (data) setDbOptions(data.map((item: any) => item.nome));
+    }
+    loadDbOptions();
+  }, [categoria]);
+
+  // Junta as opções da base de dados com as que já vinham selecionadas no carro 
+  // (caso uma opção tenha sido apagada globalmente, mas este carro antigo ainda a tenha)
+  const allOptions = Array.from(new Set([...dbOptions, ...selected]));
+
+  const toggleOption = (opt: string) => {
+    if (selected.includes(opt)) setSelected(selected.filter(o => o !== opt));
+    else setSelected([...selected, opt]);
+  };
+
+  const handleAdd = async () => {
+    if (!inputValue.trim()) return;
+    const newOpt = inputValue.trim();
+    
+    // Grava no Supabase para ficar disponível no futuro
+    if (!dbOptions.includes(newOpt)) {
+      await supabase.from('equipamentos').insert([{ nome: newOpt, categoria }]);
+      setDbOptions([...dbOptions, newOpt]);
+    }
+    
+    if (!selected.includes(newOpt)) setSelected([...selected, newOpt]);
+    setInputValue('');
+  };
+
+  // Apaga a opção completamente da base de dados global
+  const removeGlobalOption = async (e: React.MouseEvent, opt: string) => {
+    e.stopPropagation();
+    
+    if (!window.confirm(`Tem a certeza que deseja apagar a opção "${opt}" do sistema global?`)) return;
+
+    await supabase.from('equipamentos').delete().eq('nome', opt).eq('categoria', categoria);
+    setDbOptions(dbOptions.filter(o => o !== opt));
+    setSelected(selected.filter(o => o !== opt));
+  };
+
+  return (
+    <div className="mb-6 p-5 bg-gray-50 dark:bg-gray-800/50 rounded-2xl border border-gray-100 dark:border-gray-800">
+      <div className="flex justify-between items-center mb-4">
+        <label className="text-sm font-bold text-gray-800 dark:text-gray-200">{title}</label>
+        <span className="text-xs font-bold bg-ja-blue/10 text-ja-blue dark:text-blue-400 px-3 py-1 rounded-full border border-ja-blue/20">
+          {selected.length} selecionado(s)
+        </span>
+      </div>
+      
+      <div className="flex flex-wrap gap-2 mb-4">
+        {allOptions.length === 0 && (
+          <span className="text-xs text-gray-400 italic">Sem opções criadas. Digite abaixo para adicionar.</span>
+        )}
+        
+        {allOptions.map(opt => {
+          const isActive = selected.includes(opt);
+
+          return (
+            <button 
+              key={opt} 
+              type="button" 
+              onClick={() => toggleOption(opt)}
+              className={`group flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 ${
+                isActive 
+                  ? 'bg-ja-blue text-white shadow-md shadow-ja-blue/20 scale-105' 
+                  : 'bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-ja-blue/50 hover:text-ja-blue'
+              }`}
+            >
+              {opt}
+              {isActive && <X size={14} className="ml-1 opacity-80 hover:opacity-100" />}
+              
+              {/* O lixo aparece em hover nas opções não selecionadas */}
+              {!isActive && (
+                <div 
+                  onClick={(e) => removeGlobalOption(e, opt)}
+                  className="ml-1 text-red-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                  title="Apagar da base de dados global"
+                >
+                  <Trash2 size={14} />
+                </div>
+              )}
+            </button>
+          )
+        })}
+      </div>
+      
+      <div className="flex gap-2 mt-2">
+        <input 
+          type="text" 
+          value={inputValue} 
+          onChange={e => setInputValue(e.target.value)} 
+          onKeyDown={e => { if(e.key === 'Enter') { e.preventDefault(); handleAdd(); } }} 
+          placeholder="Adicionar e gravar nova opção..." 
+          className="flex-1 px-4 py-2 rounded-xl text-sm border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 outline-none text-ja-dark dark:text-white focus:ring-2 focus:ring-ja-blue/20" 
+        />
+        <button type="button" onClick={handleAdd} className="bg-gray-800 dark:bg-gray-700 text-white px-4 py-2 rounded-xl hover:bg-ja-blue transition-colors flex items-center justify-center">
+          <Plus size={18} />
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormProps) {
   // ================= ESTADOS DE MARCAS E MODELOS =================
   const [marcasList, setMarcasList] = useState<MarcaData[]>([]);
   const [modelosList, setModelosList] = useState<ModeloData[]>([]);
   
-  // Estados para os Inputs de Gestão (Adicionar Novo)
   const [newMarcaInput, setNewMarcaInput] = useState('');
   const [newModeloInput, setNewModeloInput] = useState('');
 
-  // Carregar Marcas Iniciais
   useEffect(() => {
     async function loadMarcas() {
       const { data } = await supabase.from('marcas').select('*').order('nome');
@@ -34,7 +145,6 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
   const [marca, setMarca] = useState(initialData?.marca || '');
   const [modelo, setModelo] = useState(initialData?.modelo || '');
   
-  // Carregar Modelos quando a Marca é selecionada
   useEffect(() => {
     async function fetchModelosDaMarca() {
       if (!marca || marca === 'MANAGE_MARCAS') {
@@ -52,10 +162,9 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
 
   const handleMarcaChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setMarca(e.target.value);
-    setModelo(''); // Reseta o modelo
+    setModelo(''); 
   };
 
-  // ================= LÓGICA GESTÃO DE MARCAS INLINE =================
   const handleAddMarca = async () => {
     if (!newMarcaInput.trim()) return;
     const { data, error } = await supabase.from('marcas').insert([{ nome: newMarcaInput.trim() }]).select().single();
@@ -72,7 +181,6 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
     setMarcasList(prev => prev.filter(m => m.id !== id));
   };
 
-  // ================= LÓGICA GESTÃO DE MODELOS INLINE =================
   const handleAddModelo = async () => {
     if (!newModeloInput.trim() || !marca) return;
     const marcaObj = marcasList.find(m => m.nome === marca);
@@ -91,7 +199,7 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
     setModelosList(prev => prev.filter(m => m.id !== id));
   };
 
-  // ================= RESTANTES ESTADOS DO FORMULÁRIO =================
+  // ================= RESTANTES ESTADOS =================
   const [preco, setPreco] = useState(initialData?.preco?.toString() || '');
   const [ano, setAno] = useState(initialData?.ano?.toString() || '');
   const [estado, setEstado] = useState((initialData as any)?.estado || 'Novo');
@@ -102,17 +210,15 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
   const [motor, setMotor] = useState(initialData?.motor || '');
   const [versao, setVersao] = useState(initialData?.versao || '');
   const [garantia, setGarantia] = useState((initialData as any)?.garantia || '');
-  
   const [emDestaque, setEmDestaque] = useState(initialData?.em_destaque ?? false);
   const [emStock, setEmStock] = useState(initialData?.em_stock ?? true);
-  
   const [descricao, setDescricao] = useState((initialData as any)?.descricao || '');
 
-  const [equipAudio, setEquipAudio] = useState(initialData?.equip_audio || '');
-  const [equipConforto, setEquipConforto] = useState(initialData?.equip_conforto || '');
-  const [equipDesempenho, setEquipDesempenho] = useState(initialData?.equip_desempenho || '');
-  const [equipSeguranca, setEquipSeguranca] = useState(initialData?.equip_seguranca || '');
-  const [equipTecnologia, setEquipTecnologia] = useState(initialData?.equip_tecnologia || '');
+  const [equipAudio, setEquipAudio] = useState<string[]>(initialData?.equip_audio ? initialData.equip_audio.split(', ') : []);
+  const [equipConforto, setEquipConforto] = useState<string[]>(initialData?.equip_conforto ? initialData.equip_conforto.split(', ') : []);
+  const [equipDesempenho, setEquipDesempenho] = useState<string[]>(initialData?.equip_desempenho ? initialData.equip_desempenho.split(', ') : []);
+  const [equipSeguranca, setEquipSeguranca] = useState<string[]>(initialData?.equip_seguranca ? initialData.equip_seguranca.split(', ') : []);
+  const [equipTecnologia, setEquipTecnologia] = useState<string[]>(initialData?.equip_tecnologia ? initialData.equip_tecnologia.split(', ') : []);
 
   const [fotoPerfil, setFotoPerfil] = useState<FormImage | null>(initialData?.fotos?.[0] ? { url: initialData.fotos[0] } : null);
   const [destaqueTop, setDestaqueTop] = useState<FormImage | null>(initialData?.fotos?.[1] ? { url: initialData.fotos[1] } : null);
@@ -122,17 +228,48 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
+  // ================= ESTADOS DO CROPPER REAL =================
+  const [cropImage, setCropImage] = useState<{ src: string; target: 'perfil'|'top'|'bottom'|number } | null>(null);
+  const [cropZoom, setCropZoom] = useState(1);
+  const [cropRotation, setCropRotation] = useState(0);
+
   const textoPadrao = `Viatura nacional em excelente estado de conservação.\n\n- Histórico completo de manutenção na marca;\n- Garantia de 18 meses por mútuo acordo;\n- Financiamento até 120 meses sem entrada inicial;\n- Aceitamos retomas mediante avaliação.\n\nA informação disponibilizada, ainda que precisa, não dispensa a sua confirmação, nem poderá ser considerada vinculativa.`;
 
   const handleColarTexto = () => setDescricao(textoPadrao);
+
+  // ================= HANDLERS DE IMAGENS =================
+  const handleSingleFileDrop = (e: React.DragEvent<HTMLLabelElement>, setter: React.Dispatch<React.SetStateAction<FormImage | null>>) => {
+    e.preventDefault();
+    e.currentTarget.classList.remove('border-ja-blue', 'bg-blue-50', 'dark:bg-blue-900/20');
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) setter({ file: e.dataTransfer.files[0] });
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLLabelElement>) => {
+    e.preventDefault();
+    e.currentTarget.classList.add('border-ja-blue', 'bg-blue-50', 'dark:bg-blue-900/20');
+  };
+
+  const handleDragLeave = (e: React.DragEvent<HTMLLabelElement>) => {
+    e.preventDefault();
+    e.currentTarget.classList.remove('border-ja-blue', 'bg-blue-50', 'dark:bg-blue-900/20');
+  };
 
   const handleSingleFile = (e: React.ChangeEvent<HTMLInputElement>, setter: React.Dispatch<React.SetStateAction<FormImage | null>>) => {
     if (e.target.files && e.target.files[0]) setter({ file: e.target.files[0] });
   };
 
-  const handleMultipleFiles = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      const newFiles = Array.from(e.target.files).map(f => ({ file: f }));
+  const handleMultipleFiles = (e: React.ChangeEvent<HTMLInputElement> | React.DragEvent<HTMLLabelElement>) => {
+    let files;
+    if ('dataTransfer' in e) {
+      e.preventDefault();
+      e.currentTarget.classList.remove('border-ja-blue', 'bg-blue-50', 'dark:bg-blue-900/20');
+      files = e.dataTransfer.files;
+    } else {
+      files = e.target.files;
+    }
+    
+    if (files) {
+      const newFiles = Array.from(files).map(f => ({ file: f }));
       setGaleria(prev => [...prev, ...newFiles]);
     }
   };
@@ -141,10 +278,66 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
     setGaleria(galeria.filter((_, index) => index !== indexToRemove));
   };
 
+  const openCropModal = (image: FormImage, target: 'perfil'|'top'|'bottom'|number) => {
+    const src = image.url || (image.file ? URL.createObjectURL(image.file) : null);
+    if (src) {
+      setCropImage({ src, target });
+      setCropZoom(1);
+      setCropRotation(0);
+    }
+  };
+
+  // Lógica Funcional do Cropper via HTML5 Canvas
+  const handleSaveCrop = async () => {
+    if (!cropImage) return;
+    
+    const canvas = document.createElement('canvas');
+    canvas.width = 800;
+    canvas.height = 600;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    
+    const img = new Image();
+    img.crossOrigin = "anonymous"; 
+    img.src = cropImage.src;
+    
+    await new Promise((resolve) => { img.onload = resolve; });
+
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    const scale = Math.max(canvas.width / img.width, canvas.height / img.height) * cropZoom;
+    const x = (canvas.width / 2) - (img.width / 2) * scale;
+    const y = (canvas.height / 2) - (img.height / 2) * scale;
+
+    ctx.translate(canvas.width / 2, canvas.height / 2);
+    ctx.rotate((cropRotation * Math.PI) / 180);
+    ctx.translate(-canvas.width / 2, -canvas.height / 2);
+
+    ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
+
+    canvas.toBlob((blob) => {
+      if (!blob) return;
+      const file = new File([blob], `cropped_${Date.now()}.jpg`, { type: 'image/jpeg' });
+      const newFormImage = { file, url: URL.createObjectURL(blob) };
+
+      if (cropImage.target === 'perfil') setFotoPerfil(newFormImage);
+      else if (cropImage.target === 'top') setDestaqueTop(newFormImage);
+      else if (cropImage.target === 'bottom') setDestaqueBottom(newFormImage);
+      else {
+        const newGaleria = [...galeria];
+        newGaleria[cropImage.target as number] = newFormImage;
+        setGaleria(newGaleria);
+      }
+
+      setCropImage(null);
+    }, 'image/jpeg', 0.9);
+  };
+
+  // ================= SUBMIT DO FORMULÁRIO =================
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Validações Base
     if (marca === 'MANAGE_MARCAS' || modelo === 'MANAGE_MODELOS') {
       setError('Por favor feche os painéis de gestão e selecione uma marca/modelo válida.');
       return;
@@ -197,13 +390,13 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
         versao: versao || null,
         garantia: garantia || null, 
         descricao: descricao || null,
-        equip_audio: equipAudio || null,
-        equip_conforto: equipConforto || null,
-        equip_desempenho: equipDesempenho || null,
-        equip_seguranca: equipSeguranca || null,
-        equip_tecnologia: equipTecnologia || null,
+        equip_audio: equipAudio.length > 0 ? equipAudio.join(', ') : null,
+        equip_conforto: equipConforto.length > 0 ? equipConforto.join(', ') : null,
+        equip_desempenho: equipDesempenho.length > 0 ? equipDesempenho.join(', ') : null,
+        equip_seguranca: equipSeguranca.length > 0 ? equipSeguranca.join(', ') : null,
+        equip_tecnologia: equipTecnologia.length > 0 ? equipTecnologia.join(', ') : null,
         fotos: fotosLimpas,
-        tags: [], // Passar vazio já que removemos as Tags
+        tags: [],
         em_destaque: emDestaque,
         em_stock: emStock
       };
@@ -224,19 +417,31 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
     }
   };
 
-  const SingleUploadBox = ({ state, setter, label, format }: { state: FormImage | null, setter: any, label: string, format: string }) => (
-    <div className="flex flex-col gap-2">
+  const SingleUploadBox = ({ state, setter, label, format, targetName }: { state: FormImage | null, setter: any, label: string, format: string, targetName: 'perfil'|'top'|'bottom' }) => (
+    <div className="flex flex-col gap-2 h-full">
       <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">{label}</span>
       {state ? (
-        <div className="relative aspect-[4/3] rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 group">
+        <div className="relative aspect-[4/3] rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 group shadow-sm">
           <img src={state.url || URL.createObjectURL(state.file!)} alt={label} className="w-full h-full object-cover" />
-          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 flex items-center justify-center">
-            <button type="button" onClick={() => setter(null)} className="bg-red-500 text-white p-2 rounded-full hover:bg-red-600"><X size={16} /></button>
+          
+          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-4 transition-opacity duration-300">
+            <button type="button" onClick={() => openCropModal(state, targetName)} className="bg-white text-gray-900 p-2.5 rounded-full hover:scale-110 transition-transform shadow-lg" title="Cortar Imagem">
+              <Camera size={18} />
+            </button>
+            <button type="button" onClick={() => setter(null)} className="bg-red-500 text-white p-2.5 rounded-full hover:scale-110 transition-transform shadow-lg" title="Remover">
+              <X size={18} />
+            </button>
           </div>
         </div>
       ) : (
-        <label className={`flex flex-col items-center justify-center w-full aspect-[4/3] border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl cursor-pointer bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800`}>
+        <label 
+          onDragOver={handleDragOver} 
+          onDragLeave={handleDragLeave} 
+          onDrop={(e) => handleSingleFileDrop(e, setter)}
+          className="flex flex-col items-center justify-center w-full h-full min-h-[140px] border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl cursor-pointer bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+        >
           <ImagePlus className="w-8 h-8 text-gray-400 mb-2" />
+          <span className="text-sm font-semibold text-ja-dark dark:text-gray-300 mb-1">Upload ou Drag & Drop</span>
           <span className="text-xs text-gray-500 text-center px-4">{format}</span>
           <input type="file" accept="image/*" className="hidden" onChange={(e) => handleSingleFile(e, setter)} />
         </label>
@@ -245,253 +450,338 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
   );
 
   return (
-    <div className="bg-white dark:bg-gray-900 p-6 md:p-8 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800">
-      
-      <div className="flex justify-between items-center mb-8 border-b border-gray-100 dark:border-gray-800 pb-4">
-        <div>
-          <h2 className="text-2xl font-bold text-ja-dark dark:text-white">{initialData ? 'Editar Veículo' : 'Adicionar Novo Veículo'}</h2>
-          <p className="text-gray-500 text-sm mt-1">Preencha os detalhes da viatura.</p>
-        </div>
-        <button onClick={onCancel} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-full"><X size={24} /></button>
-      </div>
-
-      {error && <div className="mb-6 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 p-4 rounded-xl text-sm font-medium">{error}</div>}
-
-      <form onSubmit={handleSubmit} className="space-y-8">
+    <>
+      <div className="bg-white dark:bg-gray-900 p-6 md:p-8 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800">
         
-        {/* Bloco 1: Informações Principais */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="flex justify-between items-center mb-8 border-b border-gray-100 dark:border-gray-800 pb-4">
+          <div>
+            <h2 className="text-2xl font-bold text-ja-dark dark:text-white">{initialData ? 'Editar Veículo' : 'Adicionar Novo Veículo'}</h2>
+            <p className="text-gray-500 text-sm mt-1">Preencha os detalhes da viatura.</p>
+          </div>
+          <button onClick={onCancel} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-full"><X size={24} /></button>
+        </div>
+
+        {error && <div className="mb-6 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 p-4 rounded-xl text-sm font-medium">{error}</div>}
+
+        <form onSubmit={handleSubmit} className="space-y-8">
           
-          {/* MARCA E GESTÃO DE MARCAS */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Marca *</label>
-            <select required value={marca} onChange={handleMarcaChange} className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-ja-blue/20 bg-white dark:bg-gray-800 text-ja-dark dark:text-white outline-none">
-              <option value="">Selecione uma marca...</option>
-              {marcasList.map(m => <option key={m.id} value={m.nome}>{m.nome}</option>)}
-              <option value="MANAGE_MARCAS" className="font-bold text-ja-blue">➕ Adicionar / Gerir Marcas...</option>
-            </select>
-
-            {/* Painel de Gestão de Marcas Inline */}
-            {marca === 'MANAGE_MARCAS' && (
-              <div className="mt-3 p-4 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl">
-                 <div className="flex justify-between items-center mb-3">
-                   <h4 className="font-bold text-sm text-ja-dark dark:text-white">Gerir Marcas</h4>
-                   <button type="button" onClick={() => setMarca('')} className="text-gray-400 hover:text-red-500 text-xs flex items-center gap-1 font-semibold"><X size={14}/> Fechar</button>
-                 </div>
-                 <div className="flex gap-2 mb-3">
-                    <input 
-                      type="text" placeholder="Nova Marca..." value={newMarcaInput} onChange={e => setNewMarcaInput(e.target.value)} 
-                      onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAddMarca(); } }}
-                      className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 outline-none text-ja-dark dark:text-white" 
-                    />
-                    <button type="button" onClick={handleAddMarca} className="bg-ja-dark dark:bg-gray-700 text-white p-2 rounded-lg hover:bg-ja-blue transition-colors"><Plus size={20}/></button>
-                 </div>
-                 <div className="max-h-32 overflow-y-auto border border-gray-100 dark:border-gray-700 rounded-lg p-2 space-y-1 bg-white dark:bg-gray-900">
-                    {marcasList.length === 0 ? <p className="text-xs text-center py-2 text-gray-500">Nenhuma marca criada.</p> : marcasList.map(m => (
-                      <div key={m.id} className="flex justify-between items-center px-2 py-1 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md">
-                        <span className="text-sm font-semibold text-ja-dark dark:text-white">{m.nome}</span>
-                        <button type="button" onClick={() => handleDeleteMarca(m.id)} className="text-gray-400 hover:text-red-500"><Trash2 size={14}/></button>
-                      </div>
-                    ))}
-                 </div>
-              </div>
-            )}
-          </div>
-
-          {/* MODELO E GESTÃO DE MODELOS */}
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Modelo *</label>
-            <select required disabled={!marca || marca === 'MANAGE_MARCAS'} value={modelo} onChange={e => setModelo(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-ja-blue/20 bg-white dark:bg-gray-800 text-ja-dark dark:text-white outline-none disabled:opacity-50">
-              <option value="">{marca && marca !== 'MANAGE_MARCAS' ? 'Selecione um modelo...' : 'Escolha a marca primeiro'}</option>
-              {modelosList.map(m => <option key={m.id} value={m.nome}>{m.nome}</option>)}
-              {marca && marca !== 'MANAGE_MARCAS' && <option value="MANAGE_MODELOS" className="font-bold text-ja-blue">➕ Adicionar / Gerir Modelos...</option>}
-            </select>
-
-            {/* Painel de Gestão de Modelos Inline */}
-            {modelo === 'MANAGE_MODELOS' && (
-              <div className="mt-3 p-4 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl">
-                 <div className="flex justify-between items-center mb-3">
-                   <h4 className="font-bold text-sm text-ja-dark dark:text-white">Gerir Modelos para {marca}</h4>
-                   <button type="button" onClick={() => setModelo('')} className="text-gray-400 hover:text-red-500 text-xs flex items-center gap-1 font-semibold"><X size={14}/> Fechar</button>
-                 </div>
-                 <div className="flex gap-2 mb-3">
-                    <input 
-                      type="text" placeholder="Novo Modelo..." value={newModeloInput} onChange={e => setNewModeloInput(e.target.value)} 
-                      onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAddModelo(); } }}
-                      className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 outline-none text-ja-dark dark:text-white" 
-                    />
-                    <button type="button" onClick={handleAddModelo} className="bg-ja-dark dark:bg-gray-700 text-white p-2 rounded-lg hover:bg-ja-blue transition-colors"><Plus size={20}/></button>
-                 </div>
-                 <div className="max-h-32 overflow-y-auto border border-gray-100 dark:border-gray-700 rounded-lg p-2 space-y-1 bg-white dark:bg-gray-900">
-                    {modelosList.length === 0 ? <p className="text-xs text-center py-2 text-gray-500">Nenhum modelo criado para esta marca.</p> : modelosList.map(m => (
-                      <div key={m.id} className="flex justify-between items-center px-2 py-1 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md">
-                        <span className="text-sm font-semibold text-ja-dark dark:text-white">{m.nome}</span>
-                        <button type="button" onClick={() => handleDeleteModelo(m.id)} className="text-gray-400 hover:text-red-500"><Trash2 size={14}/></button>
-                      </div>
-                    ))}
-                 </div>
-              </div>
-            )}
-          </div>
-
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Preço (€) *</label>
-            <input type="number" required min="0" value={preco} onChange={e => setPreco(e.target.value)} placeholder="Ex: 32500" className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-ja-blue/20 outline-none bg-white dark:bg-gray-800 text-ja-dark dark:text-white" />
-          </div>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Ano *</label>
-              <input type="number" required min="1900" max={new Date().getFullYear() + 1} value={ano} onChange={e => setAno(e.target.value)} placeholder="Ex: 2021" className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-ja-blue/20 outline-none bg-white dark:bg-gray-800 text-ja-dark dark:text-white" />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Quilómetros</label>
-              <input type="number" min="0" value={quilometros} onChange={e => setQuilometros(e.target.value)} placeholder="Ex: 45000" className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-ja-blue/20 outline-none bg-white dark:bg-gray-800 text-ja-dark dark:text-white" />
-            </div>
-          </div>
-        </div>
-
-        {/* Bloco 2: Especificações Técnicas */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 pt-6 border-t border-gray-100 dark:border-gray-800">
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Segmento</label>
-            <select value={segmento} onChange={e => setSegmento(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-ja-blue/20 bg-white dark:bg-gray-800 text-ja-dark dark:text-white outline-none">
-              <option value="">Selecione...</option>
-              <option value="Cabrio">Cabrio</option>
-              <option value="Coupe">Coupe</option>
-              <option value="Sedan">Sedan</option>
-              <option value="Peq. Citadino">Peq. Citadino</option>
-              <option value="SUV">SUV</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Combustível *</label>
-            <select value={combustivel} onChange={e => setCombustivel(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-ja-blue/20 bg-white dark:bg-gray-800 text-ja-dark dark:text-white outline-none">
-              <option value="Diesel">Diesel</option>
-              <option value="Eléctrico">Eléctrico</option>
-              <option value="Gasolina">Gasolina</option>
-              <option value="Híbrido (Gasolina)">Híbrido (Gasolina)</option>
-              <option value="Híbrido Plug-in Gasolina">Híbrido Plug-in Gasolina</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Transmissão *</label>
-            <select value={transmissao} onChange={e => setTransmissao(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-ja-blue/20 bg-white dark:bg-gray-800 text-ja-dark dark:text-white outline-none">
-              <option value="Automática">Automática</option>
-              <option value="Manual">Manual</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Motor / CV</label>
-            <input type="text" value={motor} onChange={e => setMotor(e.target.value)} placeholder="Ex: 116 cv" className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-ja-blue/20 outline-none bg-white dark:bg-gray-800 text-ja-dark dark:text-white" />
-          </div>
-        </div>
-
-        {/* Linha Opcional com 3 colunas (Versão/Estado/Garantia) */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Versão / Linha de Equipamento</label>
-            <input type="text" value={versao} onChange={e => setVersao(e.target.value)} placeholder="Ex: AMG Line Auto" className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-ja-blue/20 outline-none bg-white dark:bg-gray-800 text-ja-dark dark:text-white" />
-          </div>
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Estado da Viatura</label>
-            <select value={estado} onChange={e => setEstado(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-ja-blue/20 bg-white dark:bg-gray-800 text-ja-dark dark:text-white outline-none">
-              <option value="Novo">Novo</option>
-              <option value="Usado">Usado</option>
-            </select>
-          </div>
-          <div>
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Garantia</label>
-            <input type="text" value={garantia} onChange={e => setGarantia(e.target.value)} placeholder="Ex: 18 meses" className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-ja-blue/20 outline-none bg-white dark:bg-gray-800 text-ja-dark dark:text-white" />
-          </div>
-        </div>
-
-        {/* Bloco de Equipamentos */}
-        <div className="pt-6 border-t border-gray-100 dark:border-gray-800">
-          <div className="mb-4">
-            <h3 className="text-lg font-bold text-ja-dark dark:text-white">Equipamentos (Separados por vírgula)</h3>
-            <p className="text-xs text-gray-500">Ex: Bluetooth, Ecrã Tátil, Rádio</p>
-          </div>
+          {/* ================= INFORMAÇÕES PRINCIPAIS ================= */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Áudio e Multimédia</label>
-              <textarea value={equipAudio} onChange={e => setEquipAudio(e.target.value)} rows={2} className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-ja-blue/20 bg-gray-50 dark:bg-gray-800 text-sm outline-none text-ja-dark dark:text-white" />
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Marca *</label>
+              <select required value={marca} onChange={handleMarcaChange} className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-ja-blue/20 bg-white dark:bg-gray-800 text-ja-dark dark:text-white outline-none">
+                <option value="">Selecione uma marca...</option>
+                {marcasList.map(m => <option key={m.id} value={m.nome}>{m.nome}</option>)}
+                <option value="MANAGE_MARCAS" className="font-bold text-ja-blue">➕ Adicionar / Gerir Marcas...</option>
+              </select>
+
+              {marca === 'MANAGE_MARCAS' && (
+                <div className="mt-3 p-4 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl">
+                   <div className="flex justify-between items-center mb-3">
+                     <h4 className="font-bold text-sm text-ja-dark dark:text-white">Gerir Marcas</h4>
+                     <button type="button" onClick={() => setMarca('')} className="text-gray-400 hover:text-red-500 text-xs flex items-center gap-1 font-semibold"><X size={14}/> Fechar</button>
+                   </div>
+                   <div className="flex gap-2 mb-3">
+                      <input type="text" placeholder="Nova Marca..." value={newMarcaInput} onChange={e => setNewMarcaInput(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAddMarca(); } }} className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 outline-none text-ja-dark dark:text-white" />
+                      <button type="button" onClick={handleAddMarca} className="bg-ja-dark dark:bg-gray-700 text-white p-2 rounded-lg hover:bg-ja-blue transition-colors"><Plus size={20}/></button>
+                   </div>
+                   <div className="max-h-32 overflow-y-auto border border-gray-100 dark:border-gray-700 rounded-lg p-2 space-y-1 bg-white dark:bg-gray-900">
+                      {marcasList.length === 0 ? <p className="text-xs text-center py-2 text-gray-500">Nenhuma marca criada.</p> : marcasList.map(m => (
+                        <div key={m.id} className="flex justify-between items-center px-2 py-1 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md">
+                          <span className="text-sm font-semibold text-ja-dark dark:text-white">{m.nome}</span>
+                          <button type="button" onClick={() => handleDeleteMarca(m.id)} className="text-gray-400 hover:text-red-500"><Trash2 size={14}/></button>
+                        </div>
+                      ))}
+                   </div>
+                </div>
+              )}
             </div>
+
             <div>
-              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Conforto</label>
-              <textarea value={equipConforto} onChange={e => setEquipConforto(e.target.value)} rows={2} className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-ja-blue/20 bg-gray-50 dark:bg-gray-800 text-sm outline-none text-ja-dark dark:text-white" />
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Modelo *</label>
+              <select required disabled={!marca || marca === 'MANAGE_MARCAS'} value={modelo} onChange={e => setModelo(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-ja-blue/20 bg-white dark:bg-gray-800 text-ja-dark dark:text-white outline-none disabled:opacity-50">
+                <option value="">{marca && marca !== 'MANAGE_MARCAS' ? 'Selecione um modelo...' : 'Escolha a marca primeiro'}</option>
+                {modelosList.map(m => <option key={m.id} value={m.nome}>{m.nome}</option>)}
+                {marca && marca !== 'MANAGE_MARCAS' && <option value="MANAGE_MODELOS" className="font-bold text-ja-blue">➕ Adicionar / Gerir Modelos...</option>}
+              </select>
+
+              {modelo === 'MANAGE_MODELOS' && (
+                <div className="mt-3 p-4 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl">
+                   <div className="flex justify-between items-center mb-3">
+                     <h4 className="font-bold text-sm text-ja-dark dark:text-white">Gerir Modelos para {marca}</h4>
+                     <button type="button" onClick={() => setModelo('')} className="text-gray-400 hover:text-red-500 text-xs flex items-center gap-1 font-semibold"><X size={14}/> Fechar</button>
+                   </div>
+                   <div className="flex gap-2 mb-3">
+                      <input type="text" placeholder="Novo Modelo..." value={newModeloInput} onChange={e => setNewModeloInput(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAddModelo(); } }} className="w-full px-3 py-2 text-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 outline-none text-ja-dark dark:text-white" />
+                      <button type="button" onClick={handleAddModelo} className="bg-ja-dark dark:bg-gray-700 text-white p-2 rounded-lg hover:bg-ja-blue transition-colors"><Plus size={20}/></button>
+                   </div>
+                   <div className="max-h-32 overflow-y-auto border border-gray-100 dark:border-gray-700 rounded-lg p-2 space-y-1 bg-white dark:bg-gray-900">
+                      {modelosList.length === 0 ? <p className="text-xs text-center py-2 text-gray-500">Nenhum modelo criado para esta marca.</p> : modelosList.map(m => (
+                        <div key={m.id} className="flex justify-between items-center px-2 py-1 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-md">
+                          <span className="text-sm font-semibold text-ja-dark dark:text-white">{m.nome}</span>
+                          <button type="button" onClick={() => handleDeleteModelo(m.id)} className="text-gray-400 hover:text-red-500"><Trash2 size={14}/></button>
+                        </div>
+                      ))}
+                   </div>
+                </div>
+              )}
             </div>
+
             <div>
-              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Desempenho</label>
-              <textarea value={equipDesempenho} onChange={e => setEquipDesempenho(e.target.value)} rows={2} className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-ja-blue/20 bg-gray-50 dark:bg-gray-800 text-sm outline-none text-ja-dark dark:text-white" />
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Preço (€) *</label>
+              <input type="number" required min="0" value={preco} onChange={e => setPreco(e.target.value)} placeholder="Ex: 32500" className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-ja-blue/20 outline-none bg-white dark:bg-gray-800 text-ja-dark dark:text-white" />
             </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Segurança</label>
-              <textarea value={equipSeguranca} onChange={e => setEquipSeguranca(e.target.value)} rows={2} className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-ja-blue/20 bg-gray-50 dark:bg-gray-800 text-sm outline-none text-ja-dark dark:text-white" />
-            </div>
-            <div className="md:col-span-2">
-              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Tecnologia e Eletrónica</label>
-              <textarea value={equipTecnologia} onChange={e => setEquipTecnologia(e.target.value)} rows={2} className="w-full px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-ja-blue/20 bg-gray-50 dark:bg-gray-800 text-sm outline-none text-ja-dark dark:text-white" />
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Ano *</label>
+                <input type="number" required min="1900" max={new Date().getFullYear() + 1} value={ano} onChange={e => setAno(e.target.value)} placeholder="Ex: 2021" className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-ja-blue/20 outline-none bg-white dark:bg-gray-800 text-ja-dark dark:text-white" />
+              </div>
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Quilómetros</label>
+                <input type="number" min="0" value={quilometros} onChange={e => setQuilometros(e.target.value)} placeholder="Ex: 45000" className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-ja-blue/20 outline-none bg-white dark:bg-gray-800 text-ja-dark dark:text-white" />
+              </div>
             </div>
           </div>
-        </div>
 
-        <div className="pt-6 border-t border-gray-100 dark:border-gray-800">
-          <div className="flex items-center justify-between mb-4">
-            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">Descrição da Viatura</label>
-            <button type="button" onClick={handleColarTexto} className="flex items-center gap-1.5 text-xs font-bold text-ja-blue bg-ja-blue/10 hover:bg-ja-blue/20 px-3 py-1.5 rounded-lg">
-              <FileText size={14} /> Colar Texto Padrão
+          {/* ================= ESPECIFICAÇÕES TÉCNICAS ================= */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 pt-6 border-t border-gray-100 dark:border-gray-800">
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Segmento</label>
+              <select value={segmento} onChange={e => setSegmento(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-ja-blue/20 bg-white dark:bg-gray-800 text-ja-dark dark:text-white outline-none">
+                <option value="">Selecione...</option>
+                <option value="Cabrio">Cabrio</option>
+                <option value="Coupe">Coupe</option>
+                <option value="Sedan">Sedan</option>
+                <option value="Peq. Citadino">Peq. Citadino</option>
+                <option value="SUV">SUV</option>
+                <option value="Carrinha">Carrinha</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Combustível *</label>
+              <select value={combustivel} onChange={e => setCombustivel(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-ja-blue/20 bg-white dark:bg-gray-800 text-ja-dark dark:text-white outline-none">
+                <option value="Diesel">Diesel</option>
+                <option value="Eléctrico">Eléctrico</option>
+                <option value="Gasolina">Gasolina</option>
+                <option value="Híbrido (Gasolina)">Híbrido (Gasolina)</option>
+                <option value="Híbrido Plug-in Gasolina">Híbrido Plug-in Gasolina</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Transmissão *</label>
+              <select value={transmissao} onChange={e => setTransmissao(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-ja-blue/20 bg-white dark:bg-gray-800 text-ja-dark dark:text-white outline-none">
+                <option value="Automática">Automática</option>
+                <option value="Manual">Manual</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Motor / CV</label>
+              <input type="text" value={motor} onChange={e => setMotor(e.target.value)} placeholder="Ex: 116 cv" className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-ja-blue/20 outline-none bg-white dark:bg-gray-800 text-ja-dark dark:text-white" />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Versão / Linha de Equipamento</label>
+              <input type="text" value={versao} onChange={e => setVersao(e.target.value)} placeholder="Ex: AMG Line Auto" className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-ja-blue/20 outline-none bg-white dark:bg-gray-800 text-ja-dark dark:text-white" />
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Estado da Viatura</label>
+              <select value={estado} onChange={e => setEstado(e.target.value)} className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-ja-blue/20 bg-white dark:bg-gray-800 text-ja-dark dark:text-white outline-none">
+                <option value="Novo">Novo</option>
+                <option value="Usado">Usado</option>
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Garantia</label>
+              <input type="text" value={garantia} onChange={e => setGarantia(e.target.value)} placeholder="Ex: 18 meses" className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-ja-blue/20 outline-none bg-white dark:bg-gray-800 text-ja-dark dark:text-white" />
+            </div>
+          </div>
+
+          {/* ================= EQUIPAMENTOS (NOVO SISTEMA CHIPS C/ SUPABASE APENAS) ================= */}
+          <div className="pt-6 border-t border-gray-100 dark:border-gray-800">
+            <div className="mb-6">
+              <h3 className="text-xl font-bold text-ja-dark dark:text-white">Equipamentos</h3>
+              <p className="text-sm text-gray-500 mt-1">Selecione as opções ou digite uma nova para adicionar.</p>
+            </div>
+            
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-6 gap-y-2">
+              <EquipmentSection 
+                title="Áudio e Multimédia" 
+                categoria="audio"
+                selected={equipAudio} setSelected={setEquipAudio} 
+              />
+              <EquipmentSection 
+                title="Conforto" 
+                categoria="conforto"
+                selected={equipConforto} setSelected={setEquipConforto} 
+              />
+              <EquipmentSection 
+                title="Desempenho" 
+                categoria="desempenho"
+                selected={equipDesempenho} setSelected={setEquipDesempenho} 
+              />
+              <EquipmentSection 
+                title="Segurança" 
+                categoria="seguranca"
+                selected={equipSeguranca} setSelected={setEquipSeguranca} 
+              />
+              <div className="lg:col-span-2">
+                <EquipmentSection 
+                  title="Tecnologia e Eletrónica" 
+                  categoria="tecnologia"
+                  selected={equipTecnologia} setSelected={setEquipTecnologia} 
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* ================= DESCRIÇÃO ================= */}
+          <div className="pt-6 border-t border-gray-100 dark:border-gray-800">
+            <div className="flex items-center justify-between mb-4">
+              <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">Descrição da Viatura</label>
+              <button type="button" onClick={handleColarTexto} className="flex items-center gap-1.5 text-xs font-bold text-ja-blue bg-ja-blue/10 hover:bg-ja-blue/20 px-3 py-1.5 rounded-lg">
+                <FileText size={14} /> Colar Texto Padrão
+              </button>
+            </div>
+            <textarea value={descricao} onChange={e => setDescricao(e.target.value)} rows={5} placeholder="Escreva a descrição livremente..." className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-ja-blue/20 outline-none bg-white dark:bg-gray-800 text-ja-dark dark:text-white" />
+          </div>
+
+          {/* ================= FOTOS E DRAG & DROP ================= */}
+          <div className="pt-6 border-t border-gray-100 dark:border-gray-800">
+            <div className="mb-6 flex justify-between items-end">
+              <div>
+                <h3 className="text-xl font-bold text-ja-dark dark:text-white">Estrutura de Fotografias</h3>
+                <p className="text-sm text-gray-500 mt-1">Faça upload ou arraste as imagens para as respetivas caixas.</p>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+              
+              <div className="col-span-1 lg:border-r border-gray-100 dark:border-gray-800 lg:pr-8">
+                <SingleUploadBox state={fotoPerfil} setter={setFotoPerfil} label="1. Foto de Perfil *" format="Listagem Principal" targetName="perfil" />
+              </div>
+              
+              <div className="col-span-1 lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-6">
+                
+                <div className="col-span-1 flex flex-col gap-2 h-full">
+                  <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">2. Galeria Principal</span>
+                  <label 
+                    onDragOver={handleDragOver} 
+                    onDragLeave={handleDragLeave} 
+                    onDrop={handleMultipleFiles}
+                    className="flex flex-col items-center justify-center w-full h-[140px] border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl cursor-pointer bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 transition-colors"
+                  >
+                    <UploadCloud className="w-8 h-8 text-gray-400 mb-2" />
+                    <span className="text-sm font-semibold text-ja-blue hover:underline px-4 text-center">Adicionar Múltiplas Fotos</span>
+                    <span className="text-xs text-gray-500 mt-1">Upload ou Drag & Drop</span>
+                    <input type="file" multiple accept="image/*" className="hidden" onChange={handleMultipleFiles} />
+                  </label>
+                  
+                  {galeria.length > 0 && (
+                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 mt-3">
+                      {galeria.map((img, idx) => (
+                        <div key={idx} className="relative aspect-square rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 group shadow-sm">
+                          <img src={img.url || URL.createObjectURL(img.file!)} className="w-full h-full object-cover" />
+                          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-2 transition-opacity">
+                            <button type="button" onClick={() => openCropModal(img, idx)} className="bg-white text-gray-900 p-1.5 rounded-full hover:scale-110"><Camera size={14} /></button>
+                            <button type="button" onClick={() => removeGaleriaItem(idx)} className="bg-red-500 text-white p-1.5 rounded-full hover:scale-110"><X size={14} /></button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="col-span-1 grid grid-rows-2 gap-6">
+                  <SingleUploadBox state={destaqueTop} setter={setDestaqueTop} label="3. Destaque Superior" format="Opcional" targetName="top" />
+                  <SingleUploadBox state={destaqueBottom} setter={setDestaqueBottom} label="4. Destaque Inferior" format="Opcional" targetName="bottom" />
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+          <div className="pt-6 border-t border-gray-100 dark:border-gray-800 flex gap-8">
+            <label className="flex items-center gap-3 cursor-pointer"><input type="checkbox" checked={emDestaque} onChange={e => setEmDestaque(e.target.checked)} className="w-5 h-5 text-ja-blue cursor-pointer rounded" /><span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Destacar na Home Page</span></label>
+            <label className="flex items-center gap-3 cursor-pointer"><input type="checkbox" checked={emStock} onChange={e => setEmStock(e.target.checked)} className="w-5 h-5 text-ja-blue cursor-pointer rounded" /><span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Em Stock</span></label>
+          </div>
+
+          <div className="pt-8 flex justify-end gap-4">
+            <button type="button" onClick={onCancel} className="px-6 py-3 text-sm font-semibold text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors">Cancelar</button>
+            <button type="submit" disabled={loading} className="flex items-center gap-2 bg-ja-dark dark:bg-gray-800 hover:bg-ja-blue text-white px-8 py-3 rounded-xl font-semibold shadow-sm transition-all disabled:opacity-70">
+              {loading ? <Loader2 size={20} className="animate-spin" /> : <Save size={20} />} {loading ? 'A Guardar...' : (initialData ? 'Guardar Alterações' : 'Adicionar Veículo')}
             </button>
           </div>
-          <textarea value={descricao} onChange={e => setDescricao(e.target.value)} rows={5} placeholder="Escreva a descrição livremente..." className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-ja-blue/20 outline-none bg-white dark:bg-gray-800 text-ja-dark dark:text-white" />
-        </div>
+        </form>
+      </div>
 
-        <div className="pt-6 border-t border-gray-100 dark:border-gray-800">
-          <div className="mb-6">
-            <h3 className="text-lg font-bold text-ja-dark dark:text-white">Estrutura de Fotografias</h3>
-          </div>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <div className="col-span-1 lg:border-r border-gray-100 dark:border-gray-800 lg:pr-8">
-              <SingleUploadBox state={fotoPerfil} setter={setFotoPerfil} label="1. Foto de Perfil *" format="Listagem e Thumbnail" />
+      {/* ================= MODAL DE CORTE (CROPPER REAL NATIVO) ================= */}
+      {cropImage && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-4">
+          <div className="bg-[#18181b] rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl border border-gray-800 animate-in fade-in zoom-in-95 duration-300">
+            
+            <div className="p-4 border-b border-gray-800 flex justify-between items-center bg-black/50">
+              <h3 className="text-white font-semibold flex items-center gap-2"><Camera size={18} className="text-ja-blue"/> Cortar / Ajustar Imagem</h3>
+              <button onClick={() => setCropImage(null)} className="text-gray-400 hover:text-white p-1 rounded-full"><X size={20} /></button>
             </div>
-            <div className="col-span-1 lg:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-6">
-              <div className="col-span-1 flex flex-col gap-2">
-                <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">2. Galeria Principal</span>
-                <label className="flex flex-col items-center justify-center w-full aspect-[4/3] border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl cursor-pointer bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100">
-                  <UploadCloud className="w-8 h-8 text-gray-400 mb-2" />
-                  <span className="text-xs text-ja-blue font-semibold hover:underline px-4 text-center">Adicionar Várias</span>
-                  <input type="file" multiple accept="image/*" className="hidden" onChange={handleMultipleFiles} />
+            
+            {/* O visual exato de como a imagem ficará cortada em 4:3 (simulando a cover do Canvas) */}
+            <div className="relative w-full aspect-[4/3] bg-black overflow-hidden flex items-center justify-center">
+              <img 
+                src={cropImage.src} 
+                style={{ 
+                  transform: `scale(${cropZoom}) rotate(${cropRotation}deg)`,
+                  objectFit: 'cover',
+                  width: '100%',
+                  height: '100%',
+                  transition: 'transform 0.2s ease-out'
+                }} 
+              />
+              
+              {/* Grelha Overlay Transparente */}
+              <div className="absolute inset-0 pointer-events-none border-2 border-white/50 z-10">
+                <div className="absolute w-full h-full flex flex-col justify-evenly">
+                  <div className="w-full border-t border-white/30"></div>
+                  <div className="w-full border-t border-white/30"></div>
+                </div>
+                <div className="absolute w-full h-full flex justify-evenly">
+                  <div className="h-full border-l border-white/30"></div>
+                  <div className="h-full border-l border-white/30"></div>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-6 bg-[#18181b] space-y-4">
+              <div>
+                <label className="text-white text-xs font-semibold mb-2 flex justify-between">
+                  <span>Zoom (Aproximar)</span>
+                  <span className="text-gray-400">{Math.round(cropZoom * 100)}%</span>
                 </label>
-                {galeria.length > 0 && (
-                  <div className="grid grid-cols-3 gap-2 mt-2">
-                    {galeria.map((img, idx) => (
-                      <div key={idx} className="relative aspect-square rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 group">
-                        <img src={img.url || URL.createObjectURL(img.file!)} className="w-full h-full object-cover" />
-                        <button type="button" onClick={() => removeGaleriaItem(idx)} className="absolute top-1 right-1 bg-red-500/90 text-white p-1 rounded-full opacity-0 group-hover:opacity-100"><X size={12} /></button>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                <input 
+                  type="range" 
+                  min="1" 
+                  max="3" 
+                  step="0.05" 
+                  value={cropZoom} 
+                  onChange={e => setCropZoom(parseFloat(e.target.value))} 
+                  className="w-full cursor-pointer accent-ja-blue" 
+                />
               </div>
-              <div className="col-span-1 grid grid-rows-2 gap-6">
-                <SingleUploadBox state={destaqueTop} setter={setDestaqueTop} label="3. Destaque Superior" format="Opcional" />
-                <SingleUploadBox state={destaqueBottom} setter={setDestaqueBottom} label="4. Destaque Inferior" format="Opcional" />
+              <div className="flex justify-between items-center pt-4 border-t border-gray-800">
+                <button type="button" onClick={() => setCropRotation(r => r - 90)} className="text-white bg-gray-800 hover:bg-gray-700 p-2.5 rounded-xl flex items-center gap-2 transition-colors">
+                  <RotateCcw size={16}/> Rodar
+                </button>
+                <div className="flex gap-3">
+                  <button type="button" onClick={() => setCropImage(null)} className="text-gray-400 hover:text-white px-4 py-2 font-medium">Cancelar</button>
+                  <button type="button" onClick={handleSaveCrop} className="bg-ja-blue hover:bg-blue-600 text-white px-6 py-2.5 rounded-xl font-bold shadow-lg transition-colors">Cortar Imagem</button>
+                </div>
               </div>
             </div>
+            
           </div>
         </div>
-
-        <div className="pt-6 border-t border-gray-100 dark:border-gray-800 flex gap-8">
-          <label className="flex items-center gap-3 cursor-pointer"><input type="checkbox" checked={emDestaque} onChange={e => setEmDestaque(e.target.checked)} className="w-5 h-5 text-ja-blue cursor-pointer" /><span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Destacar na Home Page</span></label>
-          <label className="flex items-center gap-3 cursor-pointer"><input type="checkbox" checked={emStock} onChange={e => setEmStock(e.target.checked)} className="w-5 h-5 text-ja-blue cursor-pointer" /><span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Em Stock</span></label>
-        </div>
-
-        <div className="pt-8 flex justify-end gap-4">
-          <button type="button" onClick={onCancel} className="px-6 py-3 text-sm font-semibold text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl">Cancelar</button>
-          <button type="submit" disabled={loading} className="flex items-center gap-2 bg-ja-dark dark:bg-gray-800 hover:bg-ja-blue text-white px-8 py-3 rounded-xl font-semibold shadow-sm disabled:opacity-70">
-            {loading ? <Loader2 size={20} className="animate-spin" /> : <Save size={20} />} {loading ? 'A Guardar...' : (initialData ? 'Guardar' : 'Adicionar Veículo')}
-          </button>
-        </div>
-      </form>
-    </div>
+      )}
+    </>
   );
 }

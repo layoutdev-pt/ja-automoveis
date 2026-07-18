@@ -88,7 +88,8 @@ function FilterDropdown({
 }
 
 // ================= LISTAS FIXAS ATUALIZADAS =================
-const SEGMENTOS = ['Cabrio', 'Coupe', 'Sedan', 'Peq. Citadino', 'SUV'];
+// Adicionada a opção "Carrinha" conforme o PDF
+const SEGMENTOS = ['Cabrio', 'Coupe', 'Sedan', 'Peq. Citadino', 'SUV', 'Carrinha'];
 const TRANSMISSOES = ['Automática', 'Manual'];
 const COMBUSTIVEIS = ['Diesel', 'Eléctrico', 'Gasolina', 'Híbrido (Gasolina)', 'Híbrido Plug-in Gasolina'];
 
