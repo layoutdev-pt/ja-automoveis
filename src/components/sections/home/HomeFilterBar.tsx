@@ -29,11 +29,11 @@ function InlineDropdown({
         type="button"
         disabled={disabled}
         onClick={() => setIsOpen(!isOpen)} 
-        // Atualizado para um efeito "vidro" (translucido) para encaixar melhor no vídeo
-        className={`w-full flex justify-between items-center py-3 px-4 rounded-xl text-sm font-medium transition-all backdrop-blur-md ${
+        // No telemóvel tem cor sólida para não confundir a leitura. No PC (lg:) ganha o efeito vidro flutuante.
+        className={`w-full flex justify-between items-center py-2.5 sm:py-3 px-3 sm:px-4 rounded-xl text-[13px] sm:text-sm font-medium transition-all ${
           disabled 
-            ? 'bg-white/40 dark:bg-black/40 text-gray-500 cursor-not-allowed' 
-            : 'bg-white/95 dark:bg-black/70 text-gray-800 dark:text-gray-200 hover:ring-2 hover:ring-ja-blue/50 shadow-lg'
+            ? 'bg-gray-100 dark:bg-gray-800/50 text-gray-400 cursor-not-allowed border border-gray-200 dark:border-gray-800 lg:border-transparent' 
+            : 'bg-white dark:bg-[#18181b] lg:bg-white/95 lg:dark:bg-black/70 lg:backdrop-blur-md text-gray-800 dark:text-gray-200 hover:ring-2 hover:ring-ja-blue/50 shadow-sm lg:shadow-lg border border-gray-200 dark:border-gray-800 lg:border-transparent'
         }`}
       >
         <span className="truncate pr-2">{value || placeholder}</span>
@@ -41,7 +41,7 @@ function InlineDropdown({
       </button>
       
       {isOpen && !disabled && (
-        <div className="absolute z-50 w-full mt-2 bg-white/95 dark:bg-[#1a1a1c]/95 backdrop-blur-xl border border-gray-200 dark:border-gray-800 rounded-xl shadow-2xl max-h-60 overflow-y-auto p-1 flex flex-col">
+        <div className="absolute z-50 w-full mt-2 bg-white dark:bg-[#18181b] lg:bg-white/95 lg:dark:bg-[#1a1a1c]/95 lg:backdrop-blur-xl border border-gray-200 dark:border-gray-800 rounded-xl shadow-xl max-h-60 overflow-y-auto p-1 flex flex-col">
           <button onClick={() => { onChange(''); setIsOpen(false); }} className="w-full text-left px-3 py-2 text-sm text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors">
             Qualquer {placeholder.toLowerCase()}
           </button>
@@ -95,17 +95,17 @@ export function HomeFilterBar() {
   };
 
   return (
-    // Removidas as margens, bordas e fundo sólido. Agora o container é totalmente transparente.
     <div className="w-full max-w-7xl mx-auto relative z-20 transition-colors duration-500">
-      <div className="flex flex-col lg:flex-row items-center gap-3 md:gap-4">
-        <InlineDropdown placeholder="Marca" value={marca} options={marcasAtivas} onChange={(val) => { setMarca(val); setModelo(''); }} />
-        <InlineDropdown placeholder="Modelo" value={modelo} options={modelosAtivos} onChange={setModelo} disabled={!marca} />
-        <InlineDropdown placeholder="Combustível" value={combustivel} options={COMBUSTIVEIS} onChange={setCombustivel} />
-        <InlineDropdown placeholder="Transmissão" value={transmissao} options={TRANSMISSOES} onChange={setTransmissao} />
+      {/* MÁGICA AQUI: grid-cols-2 no mobile (2 caixas lado a lado) e flex-row no PC */}
+      <div className="grid grid-cols-2 lg:flex lg:flex-row items-center gap-2 sm:gap-3 lg:gap-4">
+        <div className="col-span-1 lg:flex-1"><InlineDropdown placeholder="Marca" value={marca} options={marcasAtivas} onChange={(val) => { setMarca(val); setModelo(''); }} /></div>
+        <div className="col-span-1 lg:flex-1"><InlineDropdown placeholder="Modelo" value={modelo} options={modelosAtivos} onChange={setModelo} disabled={!marca} /></div>
+        <div className="col-span-1 lg:flex-1"><InlineDropdown placeholder="Combustível" value={combustivel} options={COMBUSTIVEIS} onChange={setCombustivel} /></div>
+        <div className="col-span-1 lg:flex-1"><InlineDropdown placeholder="Transmissão" value={transmissao} options={TRANSMISSOES} onChange={setTransmissao} /></div>
         
-        <button onClick={handleSearchClick} className="w-full lg:w-auto flex items-center justify-center gap-2 bg-ja-blue text-white px-8 py-3 rounded-xl hover:bg-blue-600 transition-colors shadow-xl font-semibold backdrop-blur-md">
-          <Search size={20} />
-          <span className="lg:hidden">Procurar</span>
+        <button onClick={handleSearchClick} className="col-span-2 lg:col-span-1 lg:w-auto flex items-center justify-center gap-2 bg-ja-blue text-white px-8 py-2.5 sm:py-3 rounded-xl hover:bg-blue-600 transition-colors shadow-md lg:shadow-xl font-semibold lg:backdrop-blur-md">
+          <Search size={18} className="sm:w-5 sm:h-5" />
+          <span className="lg:hidden">Procurar Viaturas</span>
         </button>
       </div>
     </div>
