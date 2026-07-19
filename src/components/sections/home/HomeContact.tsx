@@ -40,6 +40,9 @@ export function HomeContact() {
                   <p className="text-gray-500 dark:text-gray-400 mt-1 transition-colors duration-500">
                     +351 961 650 396
                   </p>
+                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5 transition-colors duration-500">
+                    (Chamada para a rede móvel nacional)
+                  </p>
                 </div>
               </div>
 

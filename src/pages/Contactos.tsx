@@ -160,6 +160,9 @@ export function Contactos() {
                 <div>
                   <h4 className="font-semibold text-ja-dark dark:text-white transition-colors duration-500">Telefone</h4>
                   <p className="text-gray-500 dark:text-gray-400 mt-1 text-sm transition-colors duration-500">+351 961 650 396</p>
+                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5 transition-colors duration-500">
+                    (Chamada para a rede móvel nacional)
+                  </p>
                 </div>
               </div>
 

@@ -2,12 +2,12 @@ import { HomeFilterBar } from './HomeFilterBar'; // Importar o filtro
 
 export function HeroSection() {
   return (
-    // Mantidas exatamente as tuas proporções e margens do PC (mt-[116px] md:mt-[4px])
-    // Mudamos para 'flex-col' para que no mobile a barra consiga ir para debaixo do vídeo
-    <section className="relative w-full flex flex-col bg-[#0a0a0a] mt-[116px] md:mt-[4px] overflow-hidden">
+    // 1. Removido o 'overflow-hidden' daqui da <section> principal
+    <section className="relative w-full flex flex-col bg-[#0a0a0a] mt-[116px] md:mt-[4px]">
       
       {/* ================= VÍDEO E MÁSCARA ================= */}
-      <div className="relative w-full flex items-center justify-center overflow-hidden">
+      {/* 2. Mantemos o 'overflow-hidden' NESTE bloco apenas para segurar a sombra gigante da máscara */}
+      <div className="relative w-full flex items-center justify-center overflow-hidden z-10">
         
         {/* Fundo com Vídeo */}
         <video
@@ -32,16 +32,18 @@ export function HeroSection() {
           />
         </div>
 
-        {/* BARRA DE FILTROS FLUTUANTE TRANSPARENTE NO TOPO (Apenas PC) */}
-        {/* O 'hidden lg:block' faz com que desapareça no telemóvel para não tapar o vídeo */}
-        <div className="hidden lg:block absolute top-0 left-0 w-full z-20 pt-6 md:pt-[860px] px-4 sm:px-6 lg:px-8">
+      </div>
+
+      {/* ================= BARRA DE FILTROS FLUTUANTE TRANSPARENTE NO TOPO (Apenas PC) ================= */}
+      {/* 3. MÁGICA: Este bloco foi movido para FORA da div do vídeo! 
+           Como já não está preso no 'overflow-hidden', o menu cai por cima da página à vontade. */}
+      <div className="hidden lg:block absolute top-0 left-0 w-full z-30 pt-6 md:pt-[860px] px-4 sm:px-6 lg:px-8 pointer-events-none">
+        <div className="pointer-events-auto">
           <HomeFilterBar />
         </div>
-
       </div>
 
       {/* ================= BARRA DE FILTROS EMBUTIDA (Apenas Mobile/Tablet) ================= */}
-      {/* O 'block lg:hidden' faz com que só apareça no telemóvel, posicionada debaixo do vídeo */}
       <div className="block lg:hidden w-full px-4 py-4 sm:p-6 bg-white dark:bg-[#121212] border-b border-gray-200 dark:border-gray-800 z-20 relative shadow-sm transition-colors duration-500">
         <HomeFilterBar />
       </div>
