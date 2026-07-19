@@ -95,7 +95,7 @@ export function VehicleDetails() {
   });
 
   return (
-    <div className="min-h-screen bg-white dark:bg-[#0a0a0a] pt-24 pb-20 transition-colors duration-500">
+    <div className="min-h-screen bg-white dark:bg-[#0a0a0a] pt-42 pb-20 transition-colors duration-500">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         <Link to="/stand" className="inline-flex items-center text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-ja-dark dark:hover:text-white mb-8 transition-colors duration-500">
@@ -104,22 +104,22 @@ export function VehicleDetails() {
 
         {/* GALERIA */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-16">
-          <div className="lg:col-span-2 relative w-full h-[400px] lg:h-[500px] rounded-2xl overflow-hidden bg-gray-100 dark:bg-gray-900 group shadow-sm border border-gray-200/50 dark:border-gray-800">
+          <div className="lg:col-span-2 relative w-full h-[300px] sm:h-[400px] lg:h-[500px] rounded-xl sm:rounded-2xl overflow-hidden bg-gray-100 dark:bg-gray-900 group shadow-sm border border-gray-200/50 dark:border-gray-800">
             <img src={galeria[currentSlide]} alt="galeria" className="absolute inset-0 w-full h-full object-cover transition-transform duration-700" />
             {galeria.length > 1 && (
               <>
-                <button onClick={prevSlide} className="absolute left-6 top-1/2 -translate-y-1/2 z-20 w-12 h-12 flex items-center justify-center bg-black/40 hover:bg-black/70 text-white rounded-full backdrop-blur-md opacity-0 group-hover:opacity-100 transition-all"><ChevronLeft size={24} /></button>
-                <button onClick={nextSlide} className="absolute right-6 top-1/2 -translate-y-1/2 z-20 w-12 h-12 flex items-center justify-center bg-black/40 hover:bg-black/70 text-white rounded-full backdrop-blur-md opacity-0 group-hover:opacity-100 transition-all"><ChevronRight size={24} /></button>
-                <div className="absolute top-6 right-6 z-20 bg-black/40 text-white text-xs font-bold px-4 py-2 rounded-full backdrop-blur-md">{currentSlide + 1} / {galeria.length}</div>
+                <button onClick={prevSlide} className="absolute left-3 sm:left-6 top-1/2 -translate-y-1/2 z-20 w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center bg-black/40 hover:bg-black/70 text-white rounded-full backdrop-blur-md opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-all"><ChevronLeft size={24} /></button>
+                <button onClick={nextSlide} className="absolute right-3 sm:right-6 top-1/2 -translate-y-1/2 z-20 w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center bg-black/40 hover:bg-black/70 text-white rounded-full backdrop-blur-md opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-all"><ChevronRight size={24} /></button>
+                <div className="absolute top-3 sm:top-6 right-3 sm:right-6 z-20 bg-black/40 text-white text-[10px] sm:text-xs font-bold px-3 py-1.5 sm:px-4 sm:py-2 rounded-full backdrop-blur-md">{currentSlide + 1} / {galeria.length}</div>
                 
-                <div className="absolute bottom-6 left-6 z-20 flex gap-3 p-2 bg-black/40 backdrop-blur-md rounded-2xl">
+                <div className="absolute bottom-3 sm:bottom-6 left-1/2 -translate-x-1/2 sm:translate-x-0 sm:left-6 z-20 flex gap-2 sm:gap-3 p-1.5 sm:p-2 bg-black/40 backdrop-blur-md rounded-xl sm:rounded-2xl max-w-[90%] overflow-x-auto">
                   {Array.from({ length: Math.min(4, galeria.length) }).map((_, i) => {
                     const idx = galeria.length <= 4 ? i : (thumbStart + i) % galeria.length;
                     return (
                       <button 
                         key={`thumb-${idx}`} 
                         onClick={() => navigateToSlide(idx)} 
-                        className={`w-20 h-14 rounded-xl flex-shrink-0 overflow-hidden border-2 ${currentSlide === idx ? 'border-white scale-105' : 'border-transparent opacity-60 hover:opacity-100'} transition-all`}
+                        className={`w-14 h-10 sm:w-20 sm:h-14 rounded-lg sm:rounded-xl flex-shrink-0 overflow-hidden border-2 ${currentSlide === idx ? 'border-white scale-105' : 'border-transparent opacity-60 hover:opacity-100'} transition-all`}
                       >
                         <img src={galeria[idx]} className="w-full h-full object-cover" />
                       </button>
@@ -129,9 +129,15 @@ export function VehicleDetails() {
               </>
             )}
           </div>
-          <div className="hidden lg:flex flex-col gap-4 h-[500px]">
-            <div className="flex-1 relative rounded-2xl overflow-hidden bg-gray-100 dark:bg-gray-900"><img src={destaqueTop} className="absolute inset-0 w-full h-full object-cover" /></div>
-            <div className="flex-1 relative rounded-2xl overflow-hidden bg-gray-100 dark:bg-gray-900"><img src={destaqueBottom} className="absolute inset-0 w-full h-full object-cover" /></div>
+          
+          {/* FOTOS LATERAIS / INFERIORES */}
+          <div className="flex flex-row lg:flex-col gap-4 lg:h-[500px]">
+            <div className="flex-1 relative h-[120px] sm:h-[200px] lg:h-auto rounded-xl sm:rounded-2xl overflow-hidden bg-gray-100 dark:bg-gray-900">
+              <img src={destaqueTop} className="absolute inset-0 w-full h-full object-cover" />
+            </div>
+            <div className="flex-1 relative h-[120px] sm:h-[200px] lg:h-auto rounded-xl sm:rounded-2xl overflow-hidden bg-gray-100 dark:bg-gray-900">
+              <img src={destaqueBottom} className="absolute inset-0 w-full h-full object-cover" />
+            </div>
           </div>
         </div>
 
