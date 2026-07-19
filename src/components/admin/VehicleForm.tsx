@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { UploadCloud, X, Loader2, Save, FileText, ImagePlus, Plus, Trash2, Camera, RotateCcw } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { UploadCloud, X, Loader2, Save, FileText, ImagePlus, Plus, Trash2, Camera, RotateCcw, Move } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import type { Vehicle } from '../../types';
 
@@ -20,7 +20,6 @@ function EquipmentSection({ title, categoria, selected, setSelected }: {
   const [dbOptions, setDbOptions] = useState<string[]>([]);
   const [inputValue, setInputValue] = useState('');
 
-  // Carrega as opções APENAS do Supabase
   useEffect(() => {
     async function loadDbOptions() {
       const { data } = await supabase.from('equipamentos').select('nome').eq('categoria', categoria);
@@ -29,8 +28,6 @@ function EquipmentSection({ title, categoria, selected, setSelected }: {
     loadDbOptions();
   }, [categoria]);
 
-  // Junta as opções da base de dados com as que já vinham selecionadas no carro 
-  // (caso uma opção tenha sido apagada globalmente, mas este carro antigo ainda a tenha)
   const allOptions = Array.from(new Set([...dbOptions, ...selected]));
 
   const toggleOption = (opt: string) => {
@@ -42,7 +39,6 @@ function EquipmentSection({ title, categoria, selected, setSelected }: {
     if (!inputValue.trim()) return;
     const newOpt = inputValue.trim();
     
-    // Grava no Supabase para ficar disponível no futuro
     if (!dbOptions.includes(newOpt)) {
       await supabase.from('equipamentos').insert([{ nome: newOpt, categoria }]);
       setDbOptions([...dbOptions, newOpt]);
@@ -52,10 +48,8 @@ function EquipmentSection({ title, categoria, selected, setSelected }: {
     setInputValue('');
   };
 
-  // Apaga a opção completamente da base de dados global
   const removeGlobalOption = async (e: React.MouseEvent, opt: string) => {
     e.stopPropagation();
-    
     if (!window.confirm(`Tem a certeza que deseja apagar a opção "${opt}" do sistema global?`)) return;
 
     await supabase.from('equipamentos').delete().eq('nome', opt).eq('categoria', categoria);
@@ -87,14 +81,13 @@ function EquipmentSection({ title, categoria, selected, setSelected }: {
               onClick={() => toggleOption(opt)}
               className={`group flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 ${
                 isActive 
-                  ? 'bg-ja-blue text-white shadow-md shadow-ja-blue/20 scale-105' 
+                  ? 'bg-ja-blue text-white shadow-md shadow-ja-ja-blue/20 scale-105' 
                   : 'bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-ja-blue/50 hover:text-ja-blue'
               }`}
             >
               {opt}
               {isActive && <X size={14} className="ml-1 opacity-80 hover:opacity-100" />}
               
-              {/* O lixo aparece em hover nas opções não selecionadas */}
               {!isActive && (
                 <div 
                   onClick={(e) => removeGlobalOption(e, opt)}
@@ -228,10 +221,14 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // ================= ESTADOS DO CROPPER REAL =================
+  // ================= ESTADOS DO CROPPER (COM DRAG & PAN) =================
+  const cropperRef = useRef<HTMLDivElement>(null);
   const [cropImage, setCropImage] = useState<{ src: string; target: 'perfil'|'top'|'bottom'|number } | null>(null);
   const [cropZoom, setCropZoom] = useState(1);
   const [cropRotation, setCropRotation] = useState(0);
+  const [cropPan, setCropPan] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
 
   const textoPadrao = `Viatura nacional em excelente estado de conservação.\n\n- Histórico completo de manutenção na marca;\n- Garantia de 18 meses por mútuo acordo;\n- Financiamento até 120 meses sem entrada inicial;\n- Aceitamos retomas mediante avaliação.\n\nA informação disponibilizada, ainda que precisa, não dispensa a sua confirmação, nem poderá ser considerada vinculativa.`;
 
@@ -278,21 +275,45 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
     setGaleria(galeria.filter((_, index) => index !== indexToRemove));
   };
 
+  // ================= LÓGICA DO CROPPER (ARRASTAR & CORTAR) =================
   const openCropModal = (image: FormImage, target: 'perfil'|'top'|'bottom'|number) => {
     const src = image.url || (image.file ? URL.createObjectURL(image.file) : null);
     if (src) {
       setCropImage({ src, target });
       setCropZoom(1);
       setCropRotation(0);
+      setCropPan({ x: 0, y: 0 }); // Reseta a posição ao abrir
     }
   };
 
-  // Lógica Funcional do Cropper via HTML5 Canvas
+  // Handlers para arrastar a imagem no modal
+  const onMouseDown = (e: React.MouseEvent | React.TouchEvent) => {
+    setIsDragging(true);
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+    setDragStart({ x: clientX - cropPan.x, y: clientY - cropPan.y });
+  };
+
+  const onMouseMove = (e: React.MouseEvent | React.TouchEvent) => {
+    if (!isDragging) return;
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
+    const clientY = 'touches' in e ? e.touches[0].clientY : e.clientY;
+    setCropPan({ x: clientX - dragStart.x, y: clientY - dragStart.y });
+  };
+
+  const onMouseUp = () => {
+    setIsDragging(false);
+  };
+
   const handleSaveCrop = async () => {
-    if (!cropImage) return;
+    if (!cropImage || !cropperRef.current) return;
     
+    const container = cropperRef.current;
+    const containerWidth = container.clientWidth;
+    const containerHeight = container.clientHeight;
+
     const canvas = document.createElement('canvas');
-    canvas.width = 800;
+    canvas.width = 800; // Resolução final da imagem
     canvas.height = 600;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
@@ -306,15 +327,23 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    const scale = Math.max(canvas.width / img.width, canvas.height / img.height) * cropZoom;
-    const x = (canvas.width / 2) - (img.width / 2) * scale;
-    const y = (canvas.height / 2) - (img.height / 2) * scale;
+    // Mapeamento da escala e do arrasto (CSS -> Canvas)
+    const scaleCover = Math.max(canvas.width / img.width, canvas.height / img.height);
+    const finalScale = scaleCover * cropZoom;
 
-    ctx.translate(canvas.width / 2, canvas.height / 2);
+    const baseX = (canvas.width / 2) - (img.width / 2) * finalScale;
+    const baseY = (canvas.height / 2) - (img.height / 2) * finalScale;
+
+    const panXCanvas = cropPan.x * (canvas.width / containerWidth);
+    const panYCanvas = cropPan.y * (canvas.height / containerHeight);
+
+    // Aplica a rotação a partir do centro ajustado
+    ctx.translate(canvas.width / 2 + panXCanvas, canvas.height / 2 + panYCanvas);
     ctx.rotate((cropRotation * Math.PI) / 180);
-    ctx.translate(-canvas.width / 2, -canvas.height / 2);
+    ctx.translate(-(canvas.width / 2 + panXCanvas), -(canvas.height / 2 + panYCanvas));
 
-    ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
+    // Desenha a imagem cortada com as coordenadas exatas
+    ctx.drawImage(img, baseX + panXCanvas, baseY + panYCanvas, img.width * finalScale, img.height * finalScale);
 
     canvas.toBlob((blob) => {
       if (!blob) return;
@@ -602,7 +631,7 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
           <div className="pt-6 border-t border-gray-100 dark:border-gray-800">
             <div className="mb-6">
               <h3 className="text-xl font-bold text-ja-dark dark:text-white">Equipamentos</h3>
-              <p className="text-sm text-gray-500 mt-1">Selecione as opções ou digite uma nova para adicionar.</p>
+              <p className="text-sm text-gray-500 mt-1">Selecione as opções ou digite uma nova para adicionar à biblioteca.</p>
             </div>
             
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-6 gap-y-2">
@@ -726,18 +755,37 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
               <button onClick={() => setCropImage(null)} className="text-gray-400 hover:text-white p-1 rounded-full"><X size={20} /></button>
             </div>
             
-            {/* O visual exato de como a imagem ficará cortada em 4:3 (simulando a cover do Canvas) */}
-            <div className="relative w-full aspect-[4/3] bg-black overflow-hidden flex items-center justify-center">
+            {/* O visual do Cropper com Suporte a Drag & Pan */}
+            <div 
+              ref={cropperRef}
+              className="relative w-full aspect-[4/3] bg-black overflow-hidden flex items-center justify-center cursor-grab active:cursor-grabbing"
+              onMouseDown={onMouseDown}
+              onMouseMove={onMouseMove}
+              onMouseUp={onMouseUp}
+              onMouseLeave={onMouseUp}
+              onTouchStart={onMouseDown}
+              onTouchMove={onMouseMove}
+              onTouchEnd={onMouseUp}
+              style={{ touchAction: 'none' }} // Evita que o telemóvel faça scroll quando arrastas a imagem
+            >
               <img 
                 src={cropImage.src} 
+                draggable={false} // Evita o comportamento nativo de drag de imagens do browser
                 style={{ 
-                  transform: `scale(${cropZoom}) rotate(${cropRotation}deg)`,
+                  transform: `translate(${cropPan.x}px, ${cropPan.y}px) scale(${cropZoom}) rotate(${cropRotation}deg)`,
                   objectFit: 'cover',
                   width: '100%',
                   height: '100%',
-                  transition: 'transform 0.2s ease-out'
+                  transition: isDragging ? 'none' : 'transform 0.1s ease-out'
                 }} 
               />
+              
+              {/* Instrução visual temporária */}
+              {cropPan.x === 0 && cropPan.y === 0 && !isDragging && (
+                <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-black/60 text-white px-3 py-1.5 rounded-full text-xs flex items-center gap-1.5 pointer-events-none z-20">
+                  <Move size={14} /> Arraste a imagem para reposicionar
+                </div>
+              )}
               
               {/* Grelha Overlay Transparente */}
               <div className="absolute inset-0 pointer-events-none border-2 border-white/50 z-10">
