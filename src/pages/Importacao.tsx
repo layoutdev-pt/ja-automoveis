@@ -1,5 +1,6 @@
 import { Search, ShieldCheck, FileText, Truck, ArrowRight, CheckCircle2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { ScrollReveal } from '../components/ui/ScrollReveal'; // Importação do motor de animação
 
 export function Importacao() {
   const steps = [
@@ -38,88 +39,94 @@ export function Importacao() {
     <div className="min-h-screen bg-gray-50 dark:bg-[#0a0a0a] pt-42 pb-20 transition-colors duration-500">
       
       {/* Hero Section */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-20 text-center">
-        <h1 className="text-4xl md:text-5xl font-bold text-ja-dark dark:text-white tracking-tight mb-6 transition-colors duration-500">
-          Importação Segura e Transparente
-        </h1>
-        <p className="text-lg text-gray-500 dark:text-gray-400 max-w-3xl mx-auto leading-relaxed transition-colors duration-500">
-          O carro dos seus sonhos pode estar fora de Portugal. Nós tratamos de o trazer até si com total segurança, tratando de toda a burocracia e garantindo o melhor negócio, sem surpresas.
-        </p>
-      </section>
+      <ScrollReveal>
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-20 text-center">
+          <h1 className="text-4xl md:text-5xl font-bold text-ja-dark dark:text-white tracking-tight mb-6 transition-colors duration-500">
+            Importação Segura e Transparente
+          </h1>
+          <p className="text-lg text-gray-500 dark:text-gray-400 max-w-3xl mx-auto leading-relaxed transition-colors duration-500">
+            O carro dos seus sonhos pode estar fora de Portugal. Nós tratamos de o trazer até si com total segurança, tratando de toda a burocracia e garantindo o melhor negócio, sem surpresas.
+          </p>
+        </section>
+      </ScrollReveal>
 
       {/* Como Funciona (Passo a Passo) */}
-      <section className="bg-white dark:bg-[#0a0a0a] py-20 border-y border-gray-100 dark:border-gray-900 transition-colors duration-500">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-3xl font-bold text-ja-dark dark:text-white mb-4 transition-colors duration-500">Como Funciona o Processo?</h2>
-            <div className="w-16 h-1 bg-ja-blue mx-auto rounded-full"></div>
-          </div>
+      <ScrollReveal>
+        <section className="bg-white dark:bg-[#0a0a0a] py-20 border-y border-gray-100 dark:border-gray-900 transition-colors duration-500">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-16">
+              <h2 className="text-3xl font-bold text-ja-dark dark:text-white mb-4 transition-colors duration-500">Como Funciona o Processo?</h2>
+              <div className="w-16 h-1 bg-ja-blue mx-auto rounded-full"></div>
+            </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-            {steps.map((step, index) => (
-              <div 
-                key={index} 
-                // AQUI FOI ADICIONADO O HOVER: hover:-translate-y-2 hover:shadow-xl dark:hover:border-gray-700
-                className="bg-gray-50 dark:bg-gray-900/50 p-8 rounded-2xl border border-gray-100 dark:border-gray-800 hover:-translate-y-2 hover:shadow-xl dark:hover:shadow-2xl dark:hover:border-gray-700 transition-all duration-300 relative mt-4 group"
-              >
-                {/* A caixinha do ícone que fica sobreposta */}
-                <div className="absolute -top-6 left-8 bg-white dark:bg-gray-800 p-3 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 group-hover:scale-110 transition-transform duration-300">
-                  {step.icon}
-                </div>
-                <h3 className="text-xl font-bold text-ja-dark dark:text-white mt-6 mb-3 transition-colors duration-500">
-                  {step.title}
-                </h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed transition-colors duration-500">
-                  {step.description}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Garantias e Call to Action */}
-      <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
-        <div className="bg-ja-dark dark:bg-gray-900 rounded-3xl overflow-hidden shadow-xl flex flex-col lg:flex-row border border-transparent dark:border-gray-800 transition-colors duration-500">
-          
-          <div className="p-10 lg:p-16 lg:w-3/5 text-white flex flex-col justify-center">
-            <h2 className="text-3xl font-bold mb-6">O Nosso Compromisso</h2>
-            <p className="text-gray-400 mb-8 leading-relaxed">
-              Importar um carro não tem de ser uma dor de cabeça. A JA Automóveis assegura que a viatura importada cumpre exatamente os mesmos padrões rigorosos de qualidade dos carros que temos no nosso stand físico.
-            </p>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-10">
-              {guarantees.map((item, index) => (
-                <div key={index} className="flex items-center gap-3">
-                  <CheckCircle2 size={20} className="text-ja-blue flex-shrink-0" />
-                  <span className="text-sm text-gray-300 font-medium">{item}</span>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+              {steps.map((step, index) => (
+                <div 
+                  key={index} 
+                  className="bg-gray-50 dark:bg-gray-900/50 p-8 rounded-2xl border border-gray-100 dark:border-gray-800 hover:-translate-y-2 hover:shadow-xl dark:hover:shadow-2xl dark:hover:border-gray-700 transition-all duration-300 relative mt-4 group"
+                >
+                  <div className="absolute -top-6 left-8 bg-white dark:bg-gray-800 p-3 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 group-hover:scale-110 transition-transform duration-300">
+                    {step.icon}
+                  </div>
+                  <h3 className="text-xl font-bold text-ja-dark dark:text-white mt-6 mb-3 transition-colors duration-500">
+                    {step.title}
+                  </h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed transition-colors duration-500">
+                    {step.description}
+                  </p>
                 </div>
               ))}
             </div>
+          </div>
+        </section>
+      </ScrollReveal>
 
-            <div>
-              <Link 
-                to="/contactos" 
-                state={{ scrollToForm: true, assunto: 'Processo de Importação' }}
-                className="inline-flex items-center gap-2 bg-ja-blue hover:bg-blue-700 text-white font-bold py-4 px-8 rounded-xl transition-colors shadow-sm"
-              >
-                Pedir Orçamento Gratuito
-                <ArrowRight size={20} />
-              </Link>
+      {/* Garantias e Call to Action */}
+      <ScrollReveal>
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20">
+          <div className="bg-ja-dark dark:bg-gray-900 rounded-3xl overflow-hidden shadow-xl flex flex-col lg:flex-row border border-transparent dark:border-gray-800 transition-colors duration-500">
+            
+            {/* Texto da Esquerda (Ganha largura fixa de 60% no PC) */}
+            <div className="p-10 lg:p-16 lg:w-3/5 text-white flex flex-col justify-center relative z-10">
+              <h2 className="text-3xl font-bold mb-6">O Nosso Compromisso</h2>
+              <p className="text-gray-400 mb-8 leading-relaxed">
+                Importar um carro não tem de ser uma dor de cabeça. A JA Automóveis assegura que a viatura importada cumpre exatamente os mesmos padrões rigorosos de qualidade dos carros que temos no nosso stand físico.
+              </p>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-10">
+                {guarantees.map((item, index) => (
+                  <div key={index} className="flex items-center gap-3">
+                    <CheckCircle2 size={20} className="text-ja-blue flex-shrink-0" />
+                    <span className="text-sm text-gray-300 font-medium">{item}</span>
+                  </div>
+                ))}
+              </div>
+
+              <div>
+                <Link 
+                  to="/contactos" 
+                  state={{ scrollToForm: true, assunto: 'Processo de Importação' }}
+                  className="inline-flex items-center gap-2 bg-ja-blue hover:bg-blue-700 text-white font-bold py-4 px-8 rounded-xl transition-colors shadow-sm"
+                >
+                  Pedir Orçamento Gratuito
+                  <ArrowRight size={20} />
+                </Link>
+              </div>
             </div>
-          </div>
 
-          {/* Imagem Ilustrativa Direita */}
-          <div className="lg:w-2/5 min-h-[300px] relative bg-gray-800">
-            <img 
-              src="https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?q=80&w=1000&auto=format&fit=crop" 
-              alt="Transporte de Veículos" 
-              className="absolute inset-0 w-full h-full object-cover opacity-80"
-            />
-          </div>
+            {/* Imagem Ilustrativa Direita (CORRIGIDA) */}
+            {/* A div ganha lg:w-2/5 (40% da largura) e relative para a imagem ser absoluta e preencher a 100% */}
+            <div className="lg:w-2/5 relative min-h-[300px] lg:min-h-full">
+              <img
+                src="imagens/Importado.jpeg" 
+                alt="O Nosso Compromisso"
+                className="absolute inset-0 w-full h-full object-cover object-center"
+              />
+            </div>
 
-        </div>
-      </section>
+          </div>
+        </section>
+      </ScrollReveal>
 
     </div>
   );

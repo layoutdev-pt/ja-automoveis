@@ -3,6 +3,7 @@ import { Search, SlidersHorizontal, Loader2, ChevronDown, RotateCcw } from 'luci
 import { useLocation } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { VehicleCard } from '../components/ui/VehicleCard';
+import { ScrollReveal } from '../components/ui/ScrollReveal'; // Importação da animação
 import type { Vehicle } from '../types';
 
 // ================= COMPONENTE CUSTOMIZADO PARA OS DROPDOWNS =================
@@ -88,7 +89,6 @@ function FilterDropdown({
 }
 
 // ================= LISTAS FIXAS ATUALIZADAS =================
-// Adicionada a opção "Carrinha" conforme o PDF
 const SEGMENTOS = ['Cabrio', 'Coupe', 'Sedan', 'Peq. Citadino', 'SUV', 'Carrinha'];
 const TRANSMISSOES = ['Automática', 'Manual'];
 const COMBUSTIVEIS = ['Diesel', 'Eléctrico', 'Gasolina', 'Híbrido (Gasolina)', 'Híbrido Plug-in Gasolina'];
@@ -300,141 +300,146 @@ export function Stand() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
-        <div className="mb-8 pt-20">
-          <h1 className="text-3xl font-bold text-ja-dark dark:text-white tracking-tight transition-colors duration-500">
-            Todo o Inventário
-          </h1>
-          <p className="text-gray-500 dark:text-gray-400 mt-2 transition-colors duration-500">
-            Explore a nossa vasta gama de veículos de qualidade.
-          </p>
-        </div>
+        <ScrollReveal>
+          <div className="mb-8 pt-20">
+            <h1 className="text-3xl font-bold text-ja-dark dark:text-white tracking-tight transition-colors duration-500">
+              Todo o Inventário
+            </h1>
+            <p className="text-gray-500 dark:text-gray-400 mt-2 transition-colors duration-500">
+              Explore a nossa vasta gama de veículos de qualidade.
+            </p>
+          </div>
+        </ScrollReveal>
 
         <div className="flex flex-col lg:flex-row gap-8">
           
           {/* SIDEBAR DE FILTROS SUPER PREMIUM */}
           <aside className="w-full lg:w-72 flex-shrink-0">
             <div className="bg-white dark:bg-[#18181b] p-6 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800 sticky top-28 transition-colors duration-500">
-              
-              <div className="flex items-center gap-3 font-bold text-lg mb-8 text-ja-dark dark:text-white transition-colors duration-500">
-                <SlidersHorizontal size={20} />
-                Opções de pesquisa
-              </div>
-
-              <div className="space-y-4">
-                
-                {/* Filtros Principais */}
-                <div>
-                  <FilterDropdown label="Marca" placeholder="Marca" searchable value={marcaFilter} options={marcasAtivas.length > 0 ? marcasAtivas : ['Sem marcas criadas']} onChange={handleMarcaChange} />
-                </div>
-                <div>
-                  <FilterDropdown label="Modelo" placeholder="Modelo" searchable value={modeloFilter} options={modelosAtivos.length > 0 ? modelosAtivos : (marcaFilter ? ['Sem modelos'] : ['Escolha a marca primeiro'])} onChange={setModeloFilter} />
-                </div>
-                <div>
-                  <FilterDropdown label="Transmissão" placeholder="Transmissão" value={transmissaoFilter} options={TRANSMISSOES} onChange={setTransmissaoFilter} />
-                </div>
-                <div>
-                  <FilterDropdown label="Segmento" placeholder="Segmento" value={segmentoFilter} options={SEGMENTOS} onChange={setSegmentoFilter} />
-                </div>
-                <div>
-                  <FilterDropdown label="Combustível" placeholder="Combustível" value={combustivelFilter} options={COMBUSTIVEIS} onChange={setCombustivelFilter} />
+              {/* O ScrollReveal vai DENTRO do sticky para não quebrar a posição */}
+              <ScrollReveal>
+                <div className="flex items-center gap-3 font-bold text-lg mb-8 text-ja-dark dark:text-white transition-colors duration-500">
+                  <SlidersHorizontal size={20} />
+                  Opções de pesquisa
                 </div>
 
-                {/* Filtro de Ranged Duplo: PREÇO */}
-                <div className="pt-4 pb-2 border-t border-gray-100 dark:border-gray-800 mt-4">
-                  <div className="flex justify-between items-center mb-6">
-                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">Preço</label>
-                    <span className="text-xs font-bold text-ja-blue bg-ja-blue/10 dark:bg-ja-blue/20 dark:text-blue-400 px-2 py-1 rounded-md">
-                      {formatCurrency(precoMin)} - {precoMax >= MAX_PRICE ? formatCurrency(MAX_PRICE) + '+' : formatCurrency(precoMax)}
-                    </span>
+                <div className="space-y-4">
+                  
+                  {/* Filtros Principais */}
+                  <div>
+                    <FilterDropdown label="Marca" placeholder="Marca" searchable value={marcaFilter} options={marcasAtivas.length > 0 ? marcasAtivas : ['Sem marcas criadas']} onChange={handleMarcaChange} />
+                  </div>
+                  <div>
+                    <FilterDropdown label="Modelo" placeholder="Modelo" searchable value={modeloFilter} options={modelosAtivos.length > 0 ? modelosAtivos : (marcaFilter ? ['Sem modelos'] : ['Escolha a marca primeiro'])} onChange={setModeloFilter} />
+                  </div>
+                  <div>
+                    <FilterDropdown label="Transmissão" placeholder="Transmissão" value={transmissaoFilter} options={TRANSMISSOES} onChange={setTransmissaoFilter} />
+                  </div>
+                  <div>
+                    <FilterDropdown label="Segmento" placeholder="Segmento" value={segmentoFilter} options={SEGMENTOS} onChange={setSegmentoFilter} />
+                  </div>
+                  <div>
+                    <FilterDropdown label="Combustível" placeholder="Combustível" value={combustivelFilter} options={COMBUSTIVEIS} onChange={setCombustivelFilter} />
                   </div>
 
-                  <div className="range-slider my-4">
-                    <div
-                      className="progress"
-                      style={{
-                        left: `${(precoMin / MAX_PRICE) * 100}%`,
-                        right: `${100 - (precoMax / MAX_PRICE) * 100}%`
-                      }}
-                    ></div>
-                    <input
-                      type="range"
-                      min={MIN_PRICE}
-                      max={MAX_PRICE}
-                      step={500}
-                      value={precoMin}
-                      onChange={(e) => {
-                        const val = Math.min(Number(e.target.value), precoMax - 500);
-                        setPrecoMin(val);
-                      }}
-                    />
-                    <input
-                      type="range"
-                      min={MIN_PRICE}
-                      max={MAX_PRICE}
-                      step={500}
-                      value={precoMax}
-                      onChange={(e) => {
-                        const val = Math.max(Number(e.target.value), precoMin + 500);
-                        setPrecoMax(val);
-                      }}
-                    />
+                  {/* Filtro de Ranged Duplo: PREÇO */}
+                  <div className="pt-4 pb-2 border-t border-gray-100 dark:border-gray-800 mt-4">
+                    <div className="flex justify-between items-center mb-6">
+                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">Preço</label>
+                      <span className="text-xs font-bold text-ja-blue bg-ja-blue/10 dark:bg-ja-blue/20 dark:text-blue-400 px-2 py-1 rounded-md">
+                        {formatCurrency(precoMin)} - {precoMax >= MAX_PRICE ? formatCurrency(MAX_PRICE) + '+' : formatCurrency(precoMax)}
+                      </span>
+                    </div>
+
+                    <div className="range-slider my-4">
+                      <div
+                        className="progress"
+                        style={{
+                          left: `${(precoMin / MAX_PRICE) * 100}%`,
+                          right: `${100 - (precoMax / MAX_PRICE) * 100}%`
+                        }}
+                      ></div>
+                      <input
+                        type="range"
+                        min={MIN_PRICE}
+                        max={MAX_PRICE}
+                        step={500}
+                        value={precoMin}
+                        onChange={(e) => {
+                          const val = Math.min(Number(e.target.value), precoMax - 500);
+                          setPrecoMin(val);
+                        }}
+                      />
+                      <input
+                        type="range"
+                        min={MIN_PRICE}
+                        max={MAX_PRICE}
+                        step={500}
+                        value={precoMax}
+                        onChange={(e) => {
+                          const val = Math.max(Number(e.target.value), precoMin + 500);
+                          setPrecoMax(val);
+                        }}
+                      />
+                    </div>
                   </div>
+
+                  {/* Filtros de Ranged (Desde/Até) */}
+                  <div className="pt-4 border-t border-gray-100 dark:border-gray-800">
+                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Ano</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <FilterDropdown label="Ano Mínimo" placeholder="Desde" value={anoDesde} options={ANOS} onChange={setAnoDesde} />
+                      <FilterDropdown label="Ano Máximo" placeholder="Até" value={anoAte} options={ANOS} onChange={setAnoAte} />
+                    </div>
+                  </div>
+
+                  <div className="pt-2">
+                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Quilómetros</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <FilterDropdown label="Km Desde" placeholder="Desde" value={kmDesde} options={QUILOMETROS} onChange={setKmDesde} />
+                      <FilterDropdown label="Km Até" placeholder="Até" value={kmAte} options={QUILOMETROS} onChange={setKmAte} />
+                    </div>
+                  </div>
+
                 </div>
 
-                {/* Filtros de Ranged (Desde/Até) */}
-                <div className="pt-4 border-t border-gray-100 dark:border-gray-800">
-                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Ano</label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <FilterDropdown label="Ano Mínimo" placeholder="Desde" value={anoDesde} options={ANOS} onChange={setAnoDesde} />
-                    <FilterDropdown label="Ano Máximo" placeholder="Até" value={anoAte} options={ANOS} onChange={setAnoAte} />
-                  </div>
-                </div>
-
-                <div className="pt-2">
-                  <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Quilómetros</label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <FilterDropdown label="Km Desde" placeholder="Desde" value={kmDesde} options={QUILOMETROS} onChange={setKmDesde} />
-                    <FilterDropdown label="Km Até" placeholder="Até" value={kmAte} options={QUILOMETROS} onChange={setKmAte} />
-                  </div>
-                </div>
-
-              </div>
-
-              {/* Botão de Apagar Filtros */}
-              <button 
-                onClick={clearFilters}
-                className="w-full mt-10 flex items-center justify-center gap-2 text-sm font-bold text-gray-400 hover:text-red-500 dark:text-gray-500 dark:hover:text-red-400 transition-colors"
-              >
-                <RotateCcw size={16} />
-                Apagar filtros
-              </button>
-
+                {/* Botão de Apagar Filtros */}
+                <button 
+                  onClick={clearFilters}
+                  className="w-full mt-10 flex items-center justify-center gap-2 text-sm font-bold text-gray-400 hover:text-red-500 dark:text-gray-500 dark:hover:text-red-400 transition-colors"
+                >
+                  <RotateCcw size={16} />
+                  Apagar filtros
+                </button>
+              </ScrollReveal>
             </div>
           </aside>
 
           {/* ÁREA DE RESULTADOS */}
           <div className="flex-1">
-            {loading ? (
-              <div className="flex justify-center py-20"><Loader2 size={40} className="text-ja-blue animate-spin" /></div>
-            ) : vehicles.length === 0 ? (
-              <div className="text-center py-20 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 transition-colors duration-500">
-                <h3 className="text-xl font-semibold text-ja-dark dark:text-white mb-2 transition-colors duration-500">Nenhum veículo encontrado</h3>
-                <p className="text-gray-500 dark:text-gray-400 transition-colors duration-500">Ajuste os filtros ou clique em "Apagar filtros" para ver mais viaturas.</p>
-              </div>
-            ) : (
-              <>
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                  {vehicles.map((vehicle, index) => (
-                    <div ref={vehicles.length === index + 1 ? lastElementRef : null} key={vehicle.id}>
-                      <VehicleCard vehicle={vehicle} />
-                    </div>
-                  ))}
+            <ScrollReveal>
+              {loading ? (
+                <div className="flex justify-center py-20"><Loader2 size={40} className="text-ja-blue animate-spin" /></div>
+              ) : vehicles.length === 0 ? (
+                <div className="text-center py-20 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 transition-colors duration-500">
+                  <h3 className="text-xl font-semibold text-ja-dark dark:text-white mb-2 transition-colors duration-500">Nenhum veículo encontrado</h3>
+                  <p className="text-gray-500 dark:text-gray-400 transition-colors duration-500">Ajuste os filtros ou clique em "Apagar filtros" para ver mais viaturas.</p>
                 </div>
-                {loadingMore && (
-                  <div className="mt-8 flex justify-center"><Loader2 size={24} className="text-ja-blue animate-spin" /></div>
-                )}
-              </>
-            )}
+              ) : (
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                    {vehicles.map((vehicle, index) => (
+                      <div ref={vehicles.length === index + 1 ? lastElementRef : null} key={vehicle.id}>
+                        <VehicleCard vehicle={vehicle} />
+                      </div>
+                    ))}
+                  </div>
+                  {loadingMore && (
+                    <div className="mt-8 flex justify-center"><Loader2 size={24} className="text-ja-blue animate-spin" /></div>
+                  )}
+                </>
+              )}
+            </ScrollReveal>
           </div>
 
         </div>

@@ -9,11 +9,20 @@ interface VehicleFormProps {
   initialData?: Vehicle | null;
 }
 
-type FormImage = { file?: File; url?: string };
+// ================= TIPOS DE DADOS NÃO DESTRUTIVOS =================
+type ImageMeta = { zoom: number; rotation: number; panX: number; panY: number; masterUrl?: string };
+type FormImage = {
+  masterFile?: File;    // Ficheiro original selecionado (Master)
+  masterUrl?: string;   // URL do original guardado
+  cropBlob?: Blob;      // Novo recorte gerado (Crop)
+  cropUrl?: string;     // URL do recorte guardado (Front-end usa este)
+  meta?: ImageMeta;     // Registo de metadados
+};
+
 type MarcaData = { id: string; nome: string; };
 type ModeloData = { id: string; marca_id: string; nome: string; };
 
-// ================= COMPONENTE DE CHIPS (100% SUPABASE) =================
+// ================= COMPONENTE DE CHIPS (SUPABASE) =================
 function EquipmentSection({ title, categoria, selected, setSelected }: { 
   title: string, categoria: string, selected: string[], setSelected: (val: string[]) => void 
 }) {
@@ -73,7 +82,6 @@ function EquipmentSection({ title, categoria, selected, setSelected }: {
         
         {allOptions.map(opt => {
           const isActive = selected.includes(opt);
-
           return (
             <button 
               key={opt} 
@@ -81,7 +89,7 @@ function EquipmentSection({ title, categoria, selected, setSelected }: {
               onClick={() => toggleOption(opt)}
               className={`group flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 ${
                 isActive 
-                  ? 'bg-ja-blue text-white shadow-md shadow-ja-ja-blue/20 scale-105' 
+                  ? 'bg-ja-blue text-white shadow-md shadow-ja-blue/20 scale-105' 
                   : 'bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-ja-blue/50 hover:text-ja-blue'
               }`}
             >
@@ -120,7 +128,6 @@ function EquipmentSection({ title, categoria, selected, setSelected }: {
 }
 
 export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormProps) {
-  // ================= ESTADOS DE MARCAS E MODELOS =================
   const [marcasList, setMarcasList] = useState<MarcaData[]>([]);
   const [modelosList, setModelosList] = useState<ModeloData[]>([]);
   
@@ -153,19 +160,13 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
     fetchModelosDaMarca();
   }, [marca, marcasList]);
 
-  const handleMarcaChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setMarca(e.target.value);
-    setModelo(''); 
-  };
+  const handleMarcaChange = (e: React.ChangeEvent<HTMLSelectElement>) => { setMarca(e.target.value); setModelo(''); };
 
   const handleAddMarca = async () => {
     if (!newMarcaInput.trim()) return;
     const { data, error } = await supabase.from('marcas').insert([{ nome: newMarcaInput.trim() }]).select().single();
     if (error) alert('Erro ao adicionar. A marca já existe?');
-    else if (data) {
-      setMarcasList(prev => [...prev, data].sort((a,b) => a.nome.localeCompare(b.nome)));
-      setNewMarcaInput('');
-    }
+    else if (data) { setMarcasList(prev => [...prev, data].sort((a,b) => a.nome.localeCompare(b.nome))); setNewMarcaInput(''); }
   };
 
   const handleDeleteMarca = async (id: string) => {
@@ -180,10 +181,7 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
     if (!marcaObj) return;
     const { data, error } = await supabase.from('modelos').insert([{ marca_id: marcaObj.id, nome: newModeloInput.trim() }]).select().single();
     if (error) alert('Erro ao adicionar. Este modelo já existe para esta marca?');
-    else if (data) {
-      setModelosList(prev => [...prev, data].sort((a,b) => a.nome.localeCompare(b.nome)));
-      setNewModeloInput('');
-    }
+    else if (data) { setModelosList(prev => [...prev, data].sort((a,b) => a.nome.localeCompare(b.nome))); setNewModeloInput(''); }
   };
 
   const handleDeleteModelo = async (id: string) => {
@@ -192,7 +190,6 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
     setModelosList(prev => prev.filter(m => m.id !== id));
   };
 
-  // ================= RESTANTES ESTADOS =================
   const [preco, setPreco] = useState(initialData?.preco?.toString() || '');
   const [ano, setAno] = useState(initialData?.ano?.toString() || '');
   const [estado, setEstado] = useState((initialData as any)?.estado || 'Novo');
@@ -213,15 +210,27 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
   const [equipSeguranca, setEquipSeguranca] = useState<string[]>(initialData?.equip_seguranca ? initialData.equip_seguranca.split(', ') : []);
   const [equipTecnologia, setEquipTecnologia] = useState<string[]>(initialData?.equip_tecnologia ? initialData.equip_tecnologia.split(', ') : []);
 
-  const [fotoPerfil, setFotoPerfil] = useState<FormImage | null>(initialData?.fotos?.[0] ? { url: initialData.fotos[0] } : null);
-  const [destaqueTop, setDestaqueTop] = useState<FormImage | null>(initialData?.fotos?.[1] ? { url: initialData.fotos[1] } : null);
-  const [destaqueBottom, setDestaqueBottom] = useState<FormImage | null>(initialData?.fotos?.[2] ? { url: initialData.fotos[2] } : null);
-  const [galeria, setGaleria] = useState<FormImage[]>(initialData?.fotos?.slice(3).map(url => ({ url })) || []);
+  // Leitura JSON dos Metadados (Parse DB)
+  const parseInitialImage = (url?: string, meta?: any): FormImage | null => {
+    if (!url) return null;
+    return {
+      cropUrl: url,
+      masterUrl: meta?.masterUrl || url,
+      meta: meta || { zoom: 1, rotation: 0, panX: 0, panY: 0 }
+    };
+  };
+
+  const initialFotosMeta = (initialData as any)?.fotos_meta || [];
+  
+  const [fotoPerfil, setFotoPerfil] = useState<FormImage | null>(parseInitialImage(initialData?.fotos?.[0], initialFotosMeta[0]));
+  const [destaqueTop, setDestaqueTop] = useState<FormImage | null>(parseInitialImage(initialData?.fotos?.[1], initialFotosMeta[1]));
+  const [destaqueBottom, setDestaqueBottom] = useState<FormImage | null>(parseInitialImage(initialData?.fotos?.[2], initialFotosMeta[2]));
+  const [galeria, setGaleria] = useState<FormImage[]>((initialData?.fotos?.slice(3) || []).map((url, idx) => parseInitialImage(url, initialFotosMeta[idx + 3])!).filter(Boolean));
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // ================= ESTADOS DO CROPPER (COM DRAG & PAN) =================
+  // ================= ESTADOS DO CROPPER (MASTER INJECTION) =================
   const cropperRef = useRef<HTMLDivElement>(null);
   const [cropImage, setCropImage] = useState<{ src: string; target: 'perfil'|'top'|'bottom'|number } | null>(null);
   const [cropZoom, setCropZoom] = useState(1);
@@ -234,59 +243,47 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
 
   const handleColarTexto = () => setDescricao(textoPadrao);
 
-  // ================= HANDLERS DE IMAGENS =================
+  // ================= HANDLERS DE IMAGENS (NOVOS UPLOADS SÃO MASTERS) =================
+  const createNewMaster = (file: File): FormImage => ({ masterFile: file, meta: { zoom: 1, rotation: 0, panX: 0, panY: 0 } });
+
   const handleSingleFileDrop = (e: React.DragEvent<HTMLLabelElement>, setter: React.Dispatch<React.SetStateAction<FormImage | null>>) => {
-    e.preventDefault();
-    e.currentTarget.classList.remove('border-ja-blue', 'bg-blue-50', 'dark:bg-blue-900/20');
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) setter({ file: e.dataTransfer.files[0] });
+    e.preventDefault(); e.currentTarget.classList.remove('border-ja-blue', 'bg-blue-50', 'dark:bg-blue-900/20');
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) setter(createNewMaster(e.dataTransfer.files[0]));
   };
 
-  const handleDragOver = (e: React.DragEvent<HTMLLabelElement>) => {
-    e.preventDefault();
-    e.currentTarget.classList.add('border-ja-blue', 'bg-blue-50', 'dark:bg-blue-900/20');
-  };
-
-  const handleDragLeave = (e: React.DragEvent<HTMLLabelElement>) => {
-    e.preventDefault();
-    e.currentTarget.classList.remove('border-ja-blue', 'bg-blue-50', 'dark:bg-blue-900/20');
-  };
+  const handleDragOver = (e: React.DragEvent<HTMLLabelElement>) => { e.preventDefault(); e.currentTarget.classList.add('border-ja-blue', 'bg-blue-50', 'dark:bg-blue-900/20'); };
+  const handleDragLeave = (e: React.DragEvent<HTMLLabelElement>) => { e.preventDefault(); e.currentTarget.classList.remove('border-ja-blue', 'bg-blue-50', 'dark:bg-blue-900/20'); };
 
   const handleSingleFile = (e: React.ChangeEvent<HTMLInputElement>, setter: React.Dispatch<React.SetStateAction<FormImage | null>>) => {
-    if (e.target.files && e.target.files[0]) setter({ file: e.target.files[0] });
+    if (e.target.files && e.target.files[0]) setter(createNewMaster(e.target.files[0]));
   };
 
   const handleMultipleFiles = (e: React.ChangeEvent<HTMLInputElement> | React.DragEvent<HTMLLabelElement>) => {
     let files;
     if ('dataTransfer' in e) {
-      e.preventDefault();
-      e.currentTarget.classList.remove('border-ja-blue', 'bg-blue-50', 'dark:bg-blue-900/20');
+      e.preventDefault(); e.currentTarget.classList.remove('border-ja-blue', 'bg-blue-50', 'dark:bg-blue-900/20');
       files = e.dataTransfer.files;
-    } else {
-      files = e.target.files;
-    }
+    } else files = e.target.files;
     
     if (files) {
-      const newFiles = Array.from(files).map(f => ({ file: f }));
+      const newFiles = Array.from(files).map(f => createNewMaster(f));
       setGaleria(prev => [...prev, ...newFiles]);
     }
   };
 
-  const removeGaleriaItem = (indexToRemove: number) => {
-    setGaleria(galeria.filter((_, index) => index !== indexToRemove));
-  };
+  const removeGaleriaItem = (indexToRemove: number) => { setGaleria(galeria.filter((_, index) => index !== indexToRemove)); };
 
-  // ================= LÓGICA DO CROPPER (ARRASTAR & CORTAR) =================
+  // Injetar o Master e aplicar Metadados Antigos
   const openCropModal = (image: FormImage, target: 'perfil'|'top'|'bottom'|number) => {
-    const src = image.url || (image.file ? URL.createObjectURL(image.file) : null);
+    const src = image.masterUrl || (image.masterFile ? URL.createObjectURL(image.masterFile) : image.cropUrl);
     if (src) {
       setCropImage({ src, target });
-      setCropZoom(1);
-      setCropRotation(0);
-      setCropPan({ x: 0, y: 0 }); // Reseta a posição ao abrir
+      setCropZoom(image.meta?.zoom || 1);
+      setCropRotation(image.meta?.rotation || 0);
+      setCropPan({ x: image.meta?.panX || 0, y: image.meta?.panY || 0 });
     }
   };
 
-  // Handlers para arrastar a imagem no modal
   const onMouseDown = (e: React.MouseEvent | React.TouchEvent) => {
     setIsDragging(true);
     const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX;
@@ -301,174 +298,145 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
     setCropPan({ x: clientX - dragStart.x, y: clientY - dragStart.y });
   };
 
-  const onMouseUp = () => {
-    setIsDragging(false);
-  };
+  const onMouseUp = () => setIsDragging(false);
 
   const handleSaveCrop = async () => {
     if (!cropImage || !cropperRef.current) return;
-    
     const container = cropperRef.current;
-    const containerWidth = container.clientWidth;
-    const containerHeight = container.clientHeight;
-
+    
     const canvas = document.createElement('canvas');
-    canvas.width = 800; // Resolução final da imagem
-    canvas.height = 600;
+    canvas.width = 800; canvas.height = 600;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
     
     const img = new Image();
     img.crossOrigin = "anonymous"; 
     img.src = cropImage.src;
-    
     await new Promise((resolve) => { img.onload = resolve; });
 
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Mapeamento da escala e do arrasto (CSS -> Canvas)
     const scaleCover = Math.max(canvas.width / img.width, canvas.height / img.height);
     const finalScale = scaleCover * cropZoom;
-
     const baseX = (canvas.width / 2) - (img.width / 2) * finalScale;
     const baseY = (canvas.height / 2) - (img.height / 2) * finalScale;
 
-    const panXCanvas = cropPan.x * (canvas.width / containerWidth);
-    const panYCanvas = cropPan.y * (canvas.height / containerHeight);
+    const panXCanvas = cropPan.x * (canvas.width / container.clientWidth);
+    const panYCanvas = cropPan.y * (canvas.height / container.clientHeight);
 
-    // Aplica a rotação a partir do centro ajustado
     ctx.translate(canvas.width / 2 + panXCanvas, canvas.height / 2 + panYCanvas);
     ctx.rotate((cropRotation * Math.PI) / 180);
     ctx.translate(-(canvas.width / 2 + panXCanvas), -(canvas.height / 2 + panYCanvas));
 
-    // Desenha a imagem cortada com as coordenadas exatas
     ctx.drawImage(img, baseX + panXCanvas, baseY + panYCanvas, img.width * finalScale, img.height * finalScale);
 
     canvas.toBlob((blob) => {
       if (!blob) return;
-      const file = new File([blob], `cropped_${Date.now()}.jpg`, { type: 'image/jpeg' });
-      const newFormImage = { file, url: URL.createObjectURL(blob) };
+      const newMeta = { zoom: cropZoom, rotation: cropRotation, panX: cropPan.x, panY: cropPan.y };
+      
+      const updateState = (prev: FormImage | null): FormImage => ({
+        ...prev, cropBlob: blob, meta: { ...prev?.meta, ...newMeta }
+      });
 
-      if (cropImage.target === 'perfil') setFotoPerfil(newFormImage);
-      else if (cropImage.target === 'top') setDestaqueTop(newFormImage);
-      else if (cropImage.target === 'bottom') setDestaqueBottom(newFormImage);
+      if (cropImage.target === 'perfil') setFotoPerfil(prev => updateState(prev));
+      else if (cropImage.target === 'top') setDestaqueTop(prev => updateState(prev));
+      else if (cropImage.target === 'bottom') setDestaqueBottom(prev => updateState(prev));
       else {
         const newGaleria = [...galeria];
-        newGaleria[cropImage.target as number] = newFormImage;
+        newGaleria[cropImage.target as number] = updateState(newGaleria[cropImage.target as number]);
         setGaleria(newGaleria);
       }
-
       setCropImage(null);
     }, 'image/jpeg', 0.9);
   };
 
-  // ================= SUBMIT DO FORMULÁRIO =================
+  // ================= SUBMIT (CROP + MASTER HANDLING) =================
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (marca === 'MANAGE_MARCAS' || modelo === 'MANAGE_MODELOS') {
-      setError('Por favor feche os painéis de gestão e selecione uma marca/modelo válida.');
-      return;
-    }
+    if (marca === 'MANAGE_MARCAS' || modelo === 'MANAGE_MODELOS') { setError('Por favor feche os painéis de gestão.'); return; }
     if (!fotoPerfil) { setError('A Foto de Perfil é obrigatória.'); return; }
     if (!marca || !modelo) { setError('Marca e Modelo são campos obrigatórios.'); return; }
 
-    setLoading(true);
-    setError('');
+    setLoading(true); setError('');
 
     try {
-      const uploadSeNecessario = async (item: FormImage | null) => {
+      const processImage = async (item: FormImage | null) => {
         if (!item) return null;
-        if (item.url) return item.url;
-        if (item.file) {
-          const ext = item.file.name.split('.').pop();
-          const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${ext}`;
-          const { error } = await supabase.storage.from('vehicle_images').upload(fileName, item.file);
-          if (error) throw error;
-          const { data } = supabase.storage.from('vehicle_images').getPublicUrl(fileName);
-          return data.publicUrl;
+        let finalMasterUrl = item.masterUrl;
+        let finalCropUrl = item.cropUrl;
+
+        // Guarda o Ficheiro Mestre Original na Nuvem
+        if (item.masterFile) {
+          const ext = item.masterFile.name.split('.').pop();
+          const fileName = `master_${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${ext}`;
+          await supabase.storage.from('vehicle_images').upload(fileName, item.masterFile);
+          finalMasterUrl = supabase.storage.from('vehicle_images').getPublicUrl(fileName).data.publicUrl;
         }
-        return null;
+
+        // Guarda a Versão Derivada Processada (Corte)
+        if (item.cropBlob) {
+          const fileName = `crop_${Math.random().toString(36).substring(2, 15)}_${Date.now()}.jpg`;
+          await supabase.storage.from('vehicle_images').upload(fileName, item.cropBlob);
+          finalCropUrl = supabase.storage.from('vehicle_images').getPublicUrl(fileName).data.publicUrl;
+        } else if (!finalCropUrl && finalMasterUrl) {
+          finalCropUrl = finalMasterUrl; // Fallback
+        }
+
+        return { cropUrl: finalCropUrl, meta: { ...item.meta, masterUrl: finalMasterUrl } };
       };
 
-      const imgPerfil = await uploadSeNecessario(fotoPerfil);
-      const imgTop = await uploadSeNecessario(destaqueTop);
-      const imgBottom = await uploadSeNecessario(destaqueBottom);
-      
-      const imgsGaleria = [];
-      for (const item of galeria) {
-        const url = await uploadSeNecessario(item);
-        if (url) imgsGaleria.push(url);
-      }
+      const perfilRes = await processImage(fotoPerfil);
+      const topRes = await processImage(destaqueTop);
+      const bottomRes = await processImage(destaqueBottom);
+      const galeriaRes = await Promise.all(galeria.map(img => processImage(img)));
 
-      const arrayFinalFotos = [imgPerfil, imgTop || 'placeholder', imgBottom || 'placeholder', ...imgsGaleria].filter(Boolean) as string[];
-      const fotosLimpas = arrayFinalFotos.map(f => f === 'placeholder' ? '' : f);
+      const allResults = [perfilRes, topRes, bottomRes, ...galeriaRes];
+      const fotosLimpas = allResults.map(res => res ? res.cropUrl : '').map(f => f === '' ? '' : f) as string[];
+      const fotosMeta = allResults.map(res => res ? res.meta : null);
 
       const vehicleData = {
-        marca,
-        modelo,
-        preco: parseFloat(preco),
-        ano: parseInt(ano),
-        estado,
-        combustivel,
-        transmissao,
-        segmento: segmento || null,
-        quilometros: quilometros ? parseInt(quilometros) : null,
-        motor: motor || null,
-        versao: versao || null,
-        garantia: garantia || null, 
-        descricao: descricao || null,
+        marca, modelo, preco: parseFloat(preco), ano: parseInt(ano), estado, combustivel, transmissao,
+        segmento: segmento || null, quilometros: quilometros ? parseInt(quilometros) : null,
+        motor: motor || null, versao: versao || null, garantia: garantia || null, descricao: descricao || null,
         equip_audio: equipAudio.length > 0 ? equipAudio.join(', ') : null,
         equip_conforto: equipConforto.length > 0 ? equipConforto.join(', ') : null,
         equip_desempenho: equipDesempenho.length > 0 ? equipDesempenho.join(', ') : null,
         equip_seguranca: equipSeguranca.length > 0 ? equipSeguranca.join(', ') : null,
         equip_tecnologia: equipTecnologia.length > 0 ? equipTecnologia.join(', ') : null,
         fotos: fotosLimpas,
-        tags: [],
-        em_destaque: emDestaque,
-        em_stock: emStock
+        fotos_meta: fotosMeta, // Metadados registados!
+        tags: [], em_destaque: emDestaque, em_stock: emStock
       };
 
-      if (initialData) {
-        const { error: updateError } = await supabase.from('vehicles').update(vehicleData).eq('id', initialData.id);
-        if (updateError) throw updateError;
-      } else {
-        const { error: insertError } = await supabase.from('vehicles').insert([vehicleData]);
-        if (insertError) throw insertError;
-      }
+      if (initialData) await supabase.from('vehicles').update(vehicleData).eq('id', initialData.id);
+      else await supabase.from('vehicles').insert([vehicleData]);
+      
       onSuccess();
     } catch (err: any) {
       console.error('Erro ao guardar veículo:', err);
-      setError('Ocorreu um erro ao guardar o veículo. Verifique a sua ligação.');
+      setError('Ocorreu um erro ao guardar o veículo.');
     } finally {
       setLoading(false);
     }
   };
+
+  // Resolve a imagem a apresentar na Listagem do Editor
+  const getDisplayUrl = (state: FormImage) => state.cropBlob ? URL.createObjectURL(state.cropBlob) : state.cropUrl || (state.masterFile ? URL.createObjectURL(state.masterFile) : '');
 
   const SingleUploadBox = ({ state, setter, label, format, targetName }: { state: FormImage | null, setter: any, label: string, format: string, targetName: 'perfil'|'top'|'bottom' }) => (
     <div className="flex flex-col gap-2 h-full">
       <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">{label}</span>
       {state ? (
         <div className="relative aspect-[4/3] rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 group shadow-sm">
-          <img src={state.url || URL.createObjectURL(state.file!)} alt={label} className="w-full h-full object-cover" />
-          
+          <img src={getDisplayUrl(state)} alt={label} className="w-full h-full object-cover" />
           <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-4 transition-opacity duration-300">
-            <button type="button" onClick={() => openCropModal(state, targetName)} className="bg-white text-gray-900 p-2.5 rounded-full hover:scale-110 transition-transform shadow-lg" title="Cortar Imagem">
-              <Camera size={18} />
-            </button>
-            <button type="button" onClick={() => setter(null)} className="bg-red-500 text-white p-2.5 rounded-full hover:scale-110 transition-transform shadow-lg" title="Remover">
-              <X size={18} />
-            </button>
+            <button type="button" onClick={() => openCropModal(state, targetName)} className="bg-white text-gray-900 p-2.5 rounded-full hover:scale-110 transition-transform shadow-lg" title="Ajustar Imagem"><Camera size={18} /></button>
+            <button type="button" onClick={() => setter(null)} className="bg-red-500 text-white p-2.5 rounded-full hover:scale-110 transition-transform shadow-lg" title="Remover"><X size={18} /></button>
           </div>
         </div>
       ) : (
-        <label 
-          onDragOver={handleDragOver} 
-          onDragLeave={handleDragLeave} 
-          onDrop={(e) => handleSingleFileDrop(e, setter)}
-          className="flex flex-col items-center justify-center w-full h-full min-h-[140px] border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl cursor-pointer bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-        >
+        <label onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={(e) => handleSingleFileDrop(e, setter)} className="flex flex-col items-center justify-center w-full h-full min-h-[140px] border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl cursor-pointer bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
           <ImagePlus className="w-8 h-8 text-gray-400 mb-2" />
           <span className="text-sm font-semibold text-ja-dark dark:text-gray-300 mb-1">Upload ou Drag & Drop</span>
           <span className="text-xs text-gray-500 text-center px-4">{format}</span>
@@ -481,7 +449,6 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
   return (
     <>
       <div className="bg-white dark:bg-gray-900 p-6 md:p-8 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-800">
-        
         <div className="flex justify-between items-center mb-8 border-b border-gray-100 dark:border-gray-800 pb-4">
           <div>
             <h2 className="text-2xl font-bold text-ja-dark dark:text-white">{initialData ? 'Editar Veículo' : 'Adicionar Novo Veículo'}</h2>
@@ -493,7 +460,6 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
         {error && <div className="mb-6 bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 p-4 rounded-xl text-sm font-medium">{error}</div>}
 
         <form onSubmit={handleSubmit} className="space-y-8">
-          
           {/* ================= INFORMAÇÕES PRINCIPAIS ================= */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
@@ -627,7 +593,7 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
             </div>
           </div>
 
-          {/* ================= EQUIPAMENTOS (NOVO SISTEMA CHIPS C/ SUPABASE APENAS) ================= */}
+          {/* ================= EQUIPAMENTOS ================= */}
           <div className="pt-6 border-t border-gray-100 dark:border-gray-800">
             <div className="mb-6">
               <h3 className="text-xl font-bold text-ja-dark dark:text-white">Equipamentos</h3>
@@ -635,32 +601,12 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
             </div>
             
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-6 gap-y-2">
-              <EquipmentSection 
-                title="Áudio e Multimédia" 
-                categoria="audio"
-                selected={equipAudio} setSelected={setEquipAudio} 
-              />
-              <EquipmentSection 
-                title="Conforto" 
-                categoria="conforto"
-                selected={equipConforto} setSelected={setEquipConforto} 
-              />
-              <EquipmentSection 
-                title="Desempenho" 
-                categoria="desempenho"
-                selected={equipDesempenho} setSelected={setEquipDesempenho} 
-              />
-              <EquipmentSection 
-                title="Segurança" 
-                categoria="seguranca"
-                selected={equipSeguranca} setSelected={setEquipSeguranca} 
-              />
+              <EquipmentSection title="Áudio e Multimédia" categoria="audio" selected={equipAudio} setSelected={setEquipAudio} />
+              <EquipmentSection title="Conforto" categoria="conforto" selected={equipConforto} setSelected={setEquipConforto} />
+              <EquipmentSection title="Desempenho" categoria="desempenho" selected={equipDesempenho} setSelected={setEquipDesempenho} />
+              <EquipmentSection title="Segurança" categoria="seguranca" selected={equipSeguranca} setSelected={setEquipSeguranca} />
               <div className="lg:col-span-2">
-                <EquipmentSection 
-                  title="Tecnologia e Eletrónica" 
-                  categoria="tecnologia"
-                  selected={equipTecnologia} setSelected={setEquipTecnologia} 
-                />
+                <EquipmentSection title="Tecnologia e Eletrónica" categoria="tecnologia" selected={equipTecnologia} setSelected={setEquipTecnologia} />
               </div>
             </div>
           </div>
@@ -676,7 +622,7 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
             <textarea value={descricao} onChange={e => setDescricao(e.target.value)} rows={5} placeholder="Escreva a descrição livremente..." className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-ja-blue/20 outline-none bg-white dark:bg-gray-800 text-ja-dark dark:text-white" />
           </div>
 
-          {/* ================= FOTOS E DRAG & DROP ================= */}
+          {/* ================= FOTOS ================= */}
           <div className="pt-6 border-t border-gray-100 dark:border-gray-800">
             <div className="mb-6 flex justify-between items-end">
               <div>
@@ -695,12 +641,7 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
                 
                 <div className="col-span-1 flex flex-col gap-2 h-full">
                   <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">2. Galeria Principal</span>
-                  <label 
-                    onDragOver={handleDragOver} 
-                    onDragLeave={handleDragLeave} 
-                    onDrop={handleMultipleFiles}
-                    className="flex flex-col items-center justify-center w-full h-[140px] border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl cursor-pointer bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 transition-colors"
-                  >
+                  <label onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleMultipleFiles} className="flex flex-col items-center justify-center w-full h-[140px] border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl cursor-pointer bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 transition-colors">
                     <UploadCloud className="w-8 h-8 text-gray-400 mb-2" />
                     <span className="text-sm font-semibold text-ja-blue hover:underline px-4 text-center">Adicionar Múltiplas Fotos</span>
                     <span className="text-xs text-gray-500 mt-1">Upload ou Drag & Drop</span>
@@ -711,7 +652,7 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
                     <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 mt-3">
                       {galeria.map((img, idx) => (
                         <div key={idx} className="relative aspect-square rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 group shadow-sm">
-                          <img src={img.url || URL.createObjectURL(img.file!)} className="w-full h-full object-cover" />
+                          <img src={getDisplayUrl(img)} className="w-full h-full object-cover" />
                           <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-2 transition-opacity">
                             <button type="button" onClick={() => openCropModal(img, idx)} className="bg-white text-gray-900 p-1.5 rounded-full hover:scale-110"><Camera size={14} /></button>
                             <button type="button" onClick={() => removeGaleriaItem(idx)} className="bg-red-500 text-white p-1.5 rounded-full hover:scale-110"><X size={14} /></button>
@@ -745,7 +686,7 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
         </form>
       </div>
 
-      {/* ================= MODAL DE CORTE (CROPPER REAL NATIVO) ================= */}
+      {/* ================= MODAL DE CORTE COM INJEÇÃO METADATA ================= */}
       {cropImage && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-4">
           <div className="bg-[#18181b] rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl border border-gray-800 animate-in fade-in zoom-in-95 duration-300">
@@ -755,47 +696,35 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
               <button onClick={() => setCropImage(null)} className="text-gray-400 hover:text-white p-1 rounded-full"><X size={20} /></button>
             </div>
             
-            {/* O visual do Cropper com Suporte a Drag & Pan */}
             <div 
               ref={cropperRef}
               className="relative w-full aspect-[4/3] bg-black overflow-hidden flex items-center justify-center cursor-grab active:cursor-grabbing"
-              onMouseDown={onMouseDown}
-              onMouseMove={onMouseMove}
-              onMouseUp={onMouseUp}
-              onMouseLeave={onMouseUp}
-              onTouchStart={onMouseDown}
-              onTouchMove={onMouseMove}
-              onTouchEnd={onMouseUp}
-              style={{ touchAction: 'none' }} // Evita que o telemóvel faça scroll quando arrastas a imagem
+              onMouseDown={onMouseDown} onMouseMove={onMouseMove} onMouseUp={onMouseUp} onMouseLeave={onMouseUp}
+              onTouchStart={onMouseDown} onTouchMove={onMouseMove} onTouchEnd={onMouseUp}
+              style={{ touchAction: 'none' }}
             >
               <img 
                 src={cropImage.src} 
-                draggable={false} // Evita o comportamento nativo de drag de imagens do browser
+                draggable={false}
                 style={{ 
                   transform: `translate(${cropPan.x}px, ${cropPan.y}px) scale(${cropZoom}) rotate(${cropRotation}deg)`,
-                  objectFit: 'cover',
-                  width: '100%',
-                  height: '100%',
+                  objectFit: 'cover', width: '100%', height: '100%',
                   transition: isDragging ? 'none' : 'transform 0.1s ease-out'
                 }} 
               />
               
-              {/* Instrução visual temporária */}
               {cropPan.x === 0 && cropPan.y === 0 && !isDragging && (
                 <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-black/60 text-white px-3 py-1.5 rounded-full text-xs flex items-center gap-1.5 pointer-events-none z-20">
                   <Move size={14} /> Arraste a imagem para reposicionar
                 </div>
               )}
               
-              {/* Grelha Overlay Transparente */}
               <div className="absolute inset-0 pointer-events-none border-2 border-white/50 z-10">
                 <div className="absolute w-full h-full flex flex-col justify-evenly">
-                  <div className="w-full border-t border-white/30"></div>
-                  <div className="w-full border-t border-white/30"></div>
+                  <div className="w-full border-t border-white/30"></div><div className="w-full border-t border-white/30"></div>
                 </div>
                 <div className="absolute w-full h-full flex justify-evenly">
-                  <div className="h-full border-l border-white/30"></div>
-                  <div className="h-full border-l border-white/30"></div>
+                  <div className="h-full border-l border-white/30"></div><div className="h-full border-l border-white/30"></div>
                 </div>
               </div>
             </div>
@@ -803,18 +732,9 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
             <div className="p-6 bg-[#18181b] space-y-4">
               <div>
                 <label className="text-white text-xs font-semibold mb-2 flex justify-between">
-                  <span>Zoom (Aproximar)</span>
-                  <span className="text-gray-400">{Math.round(cropZoom * 100)}%</span>
+                  <span>Zoom (Aproximar)</span><span className="text-gray-400">{Math.round(cropZoom * 100)}%</span>
                 </label>
-                <input 
-                  type="range" 
-                  min="1" 
-                  max="3" 
-                  step="0.05" 
-                  value={cropZoom} 
-                  onChange={e => setCropZoom(parseFloat(e.target.value))} 
-                  className="w-full cursor-pointer accent-ja-blue" 
-                />
+                <input type="range" min="1" max="3" step="0.05" value={cropZoom} onChange={e => setCropZoom(parseFloat(e.target.value))} className="w-full cursor-pointer accent-ja-blue" />
               </div>
               <div className="flex justify-between items-center pt-4 border-t border-gray-800">
                 <button type="button" onClick={() => setCropRotation(r => r - 90)} className="text-white bg-gray-800 hover:bg-gray-700 p-2.5 rounded-xl flex items-center gap-2 transition-colors">

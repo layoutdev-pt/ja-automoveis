@@ -7,38 +7,55 @@ import { GuaranteeSection } from '../components/sections/home/GuaranteeSection';
 import { WhyChooseUsSection } from '../components/sections/home/WhyChooseUsSection';
 import { FAQSection } from '../components/sections/home/FAQSection';
 import { HomeContact } from '../components/sections/home/HomeContact';
+import { ScrollReveal } from '../components/ui/ScrollReveal'; // Importação do motor de animação
 
 export function Home() {
   return (
     <div className="flex flex-col w-full">
 
-      {/* 1. Secção de Hero (video) */}
+      {/* 1. Secção de Hero (video) - Sem ScrollReveal pois é o topo imediato da página */}
       <HeroSection />
       
-      {/* 2 e 3. Secção de Filtros + Secção de Destaques 
-          (Estão combinadas no FeaturedVehicles conforme programado anteriormente) */}
-      <FeaturedVehicles />
+      <ScrollReveal>
+        {/* 2 e 3. Secção de Filtros + Secção de Destaques 
+            (Estão combinadas no FeaturedVehicles conforme programado anteriormente) */}
+        <FeaturedVehicles />
+      </ScrollReveal>
       
-      {/* 4. Carrossel de Marcas */}
-      <BrandCarousel />
+      <ScrollReveal>
+        {/* 4. Carrossel de Marcas */}
+        <BrandCarousel />
+      </ScrollReveal>
       
-      {/* 5. Secção de Novas Entradas (Últimos Adicionados) */}
-      <LatestVehicles />
+      <ScrollReveal>
+        {/* 5. Secção de Novas Entradas (Últimos Adicionados) */}
+        <LatestVehicles />
+      </ScrollReveal>
       
-      {/* 6. Secção de Importação */}
-      <ImportBannerSection />
+      <ScrollReveal>
+        {/* 6. Secção de Importação */}
+        <ImportBannerSection />
+      </ScrollReveal>
       
-      {/* 7. Secção de Garantia */}
-      <GuaranteeSection />
+      <ScrollReveal>
+        {/* 7. Secção de Garantia */}
+        <GuaranteeSection />
+      </ScrollReveal>
       
-      {/* 8. Secção de Motivos (Porquê Nós) */}
-      <WhyChooseUsSection />
+      <ScrollReveal>
+        {/* 8. Secção de Motivos (Porquê Nós) */}
+        <WhyChooseUsSection />
+      </ScrollReveal>
       
-      {/* 9. Secção de Perguntas Frequentes */}
-      <FAQSection />
+      <ScrollReveal>
+        {/* 9. Secção de Perguntas Frequentes */}
+        <FAQSection />
+      </ScrollReveal>
       
-      {/* 10. Secção de Visita / Instalações */}
-      <HomeContact />
+      <ScrollReveal>
+        {/* 10. Secção de Visita / Instalações */}
+        <HomeContact />
+      </ScrollReveal>
     </div>
   );
 }
