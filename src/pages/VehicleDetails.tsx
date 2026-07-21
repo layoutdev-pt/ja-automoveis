@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { 
   ArrowLeft, Loader2, Check, ChevronLeft, ChevronRight, MessageSquare,
   Calendar, Gauge, Fuel, Settings2, Zap, Car, BadgeCheck, CheckCircle, XCircle,
-  ShieldCheck
+  ShieldCheck, Video, Play, Pause // Adicionados Play e Pause
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import type { Vehicle } from '../types';
@@ -17,6 +17,10 @@ export function VehicleDetails() {
   const [thumbStart, setThumbStart] = useState(0);
   
   const [activeTab, setActiveTab] = useState<'equipamento' | 'descricao'>('equipamento');
+
+  // Estados para o controlo de Vídeo Moderno
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [isPlaying, setIsPlaying] = useState(true);
 
   useEffect(() => {
     async function fetchVehicle() {
@@ -34,6 +38,11 @@ export function VehicleDetails() {
     fetchVehicle();
   }, [id]);
 
+  // Sempre que mudamos de slide, assumimos que o vídeo novo vai fazer autoPlay
+  useEffect(() => {
+    setIsPlaying(true);
+  }, [currentSlide]);
+
   if (loading) return <div className="min-h-screen flex items-center justify-center pt-20"><Loader2 size={40} className="text-ja-blue animate-spin" /></div>;
   if (!vehicle) return <div className="min-h-screen flex flex-col items-center justify-center pt-20"><h2 className="text-2xl font-bold">Viatura não encontrada</h2><Link to="/stand" className="text-ja-blue mt-4">Voltar ao Inventário</Link></div>;
 
@@ -45,6 +54,24 @@ export function VehicleDetails() {
   const destaqueBottom = vehicle.fotos[2] || fotoPerfil; 
   const galeriaRaw = vehicle.fotos.slice(3).filter(f => f !== '');
   const galeria = galeriaRaw.length > 0 ? galeriaRaw : [fotoPerfil]; 
+
+  // ================= FUNÇÃO PARA DETETAR VÍDEOS =================
+  const isVideoUrl = (url: string) => typeof url === 'string' && /\.(mp4|webm|ogg|mov|m4v)$/i.test(url);
+
+  // ================= TOGGLE DO VÍDEO (PLAY/PAUSE) =================
+  const togglePlay = (e?: React.MouseEvent) => {
+    e?.preventDefault();
+    e?.stopPropagation(); // Evita conflitos com outros cliques
+    if (videoRef.current) {
+      if (videoRef.current.paused) {
+        videoRef.current.play();
+        setIsPlaying(true);
+      } else {
+        videoRef.current.pause();
+        setIsPlaying(false);
+      }
+    }
+  };
 
   const navigateToSlide = (newSlide: number, directionHint?: 'forward' | 'backward') => {
     setCurrentSlide(newSlide);
@@ -105,7 +132,43 @@ export function VehicleDetails() {
         {/* GALERIA */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-16">
           <div className="lg:col-span-2 relative w-full h-[300px] sm:h-[400px] lg:h-[500px] rounded-xl sm:rounded-2xl overflow-hidden bg-gray-100 dark:bg-gray-900 group shadow-sm border border-gray-200/50 dark:border-gray-800">
-            <img src={galeria[currentSlide]} alt="galeria" className="absolute inset-0 w-full h-full object-cover transition-transform duration-700" />
+            
+            {/* RENDERIZAÇÃO CONDICIONAL: IMAGEM VS VÍDEO PRINCIPAL */}
+            {isVideoUrl(galeria[currentSlide]) ? (
+              <>
+                <video 
+                  ref={videoRef}
+                  src={galeria[currentSlide]} 
+                  playsInline 
+                  autoPlay
+                  muted
+                  loop
+                  onClick={togglePlay}
+                  onPlay={() => setIsPlaying(true)}
+                  onPause={() => setIsPlaying(false)}
+                  className="absolute inset-0 w-full h-full object-contain bg-black transition-transform duration-700 cursor-pointer" 
+                />
+                
+                {/* Botão Play/Pause Central (Estilo Moderno) */}
+                <button 
+                  onClick={togglePlay}
+                  className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-20 w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center bg-black/40 hover:bg-black/70 text-white rounded-full backdrop-blur-md transition-all duration-300 pointer-events-none group-hover:pointer-events-auto ${
+                    isPlaying 
+                      ? 'opacity-0 group-hover:opacity-100 scale-90 group-hover:scale-100' 
+                      : 'opacity-100 scale-100 ring-4 ring-white/20'
+                  }`}
+                >
+                  {isPlaying ? <Pause size={32} /> : <Play size={36} className="ml-2" />}
+                </button>
+              </>
+            ) : (
+              <img 
+                src={galeria[currentSlide]} 
+                alt="galeria" 
+                className="absolute inset-0 w-full h-full object-cover transition-transform duration-700" 
+              />
+            )}
+
             {galeria.length > 1 && (
               <>
                 <button onClick={prevSlide} className="absolute left-3 sm:left-6 top-1/2 -translate-y-1/2 z-20 w-10 h-10 sm:w-12 sm:h-12 flex items-center justify-center bg-black/40 hover:bg-black/70 text-white rounded-full backdrop-blur-md opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-all"><ChevronLeft size={24} /></button>
@@ -115,13 +178,25 @@ export function VehicleDetails() {
                 <div className="absolute bottom-3 sm:bottom-6 left-1/2 -translate-x-1/2 sm:translate-x-0 sm:left-6 z-20 flex gap-2 sm:gap-3 p-1.5 sm:p-2 bg-black/40 backdrop-blur-md rounded-xl sm:rounded-2xl max-w-[90%] overflow-x-auto">
                   {Array.from({ length: Math.min(4, galeria.length) }).map((_, i) => {
                     const idx = galeria.length <= 4 ? i : (thumbStart + i) % galeria.length;
+                    const isVid = isVideoUrl(galeria[idx]);
+                    
                     return (
                       <button 
                         key={`thumb-${idx}`} 
                         onClick={() => navigateToSlide(idx)} 
-                        className={`w-14 h-10 sm:w-20 sm:h-14 rounded-lg sm:rounded-xl flex-shrink-0 overflow-hidden border-2 ${currentSlide === idx ? 'border-white scale-105' : 'border-transparent opacity-60 hover:opacity-100'} transition-all`}
+                        className={`relative w-14 h-10 sm:w-20 sm:h-14 rounded-lg sm:rounded-xl flex-shrink-0 overflow-hidden border-2 ${currentSlide === idx ? 'border-white scale-105' : 'border-transparent opacity-60 hover:opacity-100'} transition-all`}
                       >
-                        <img src={galeria[idx]} className="w-full h-full object-cover" />
+                        {/* MINIATURA: IMAGEM VS VÍDEO */}
+                        {isVid ? (
+                          <>
+                            <video src={galeria[idx]} className="w-full h-full object-cover" muted playsInline />
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/30 pointer-events-none">
+                              <Video size={16} className="text-white drop-shadow-md" />
+                            </div>
+                          </>
+                        ) : (
+                          <img src={galeria[idx]} className="w-full h-full object-cover" />
+                        )}
                       </button>
                     );
                   })}
@@ -132,11 +207,19 @@ export function VehicleDetails() {
           
           {/* FOTOS LATERAIS / INFERIORES */}
           <div className="flex flex-row lg:flex-col gap-4 lg:h-[500px]">
-            <div className="flex-1 relative h-[120px] sm:h-[200px] lg:h-auto rounded-xl sm:rounded-2xl overflow-hidden bg-gray-100 dark:bg-gray-900">
-              <img src={destaqueTop} className="absolute inset-0 w-full h-full object-cover" />
+            <div className="flex-1 relative h-[120px] sm:h-[200px] lg:h-auto rounded-xl sm:rounded-2xl overflow-hidden bg-gray-100 dark:bg-gray-900 group">
+              {isVideoUrl(destaqueTop) ? (
+                <video src={destaqueTop} className="absolute inset-0 w-full h-full object-cover" muted playsInline autoPlay loop />
+              ) : (
+                <img src={destaqueTop} className="absolute inset-0 w-full h-full object-cover" />
+              )}
             </div>
-            <div className="flex-1 relative h-[120px] sm:h-[200px] lg:h-auto rounded-xl sm:rounded-2xl overflow-hidden bg-gray-100 dark:bg-gray-900">
-              <img src={destaqueBottom} className="absolute inset-0 w-full h-full object-cover" />
+            <div className="flex-1 relative h-[120px] sm:h-[200px] lg:h-auto rounded-xl sm:rounded-2xl overflow-hidden bg-gray-100 dark:bg-gray-900 group">
+               {isVideoUrl(destaqueBottom) ? (
+                <video src={destaqueBottom} className="absolute inset-0 w-full h-full object-cover" muted playsInline autoPlay loop />
+              ) : (
+                <img src={destaqueBottom} className="absolute inset-0 w-full h-full object-cover" />
+              )}
             </div>
           </div>
         </div>
@@ -259,7 +342,7 @@ export function VehicleDetails() {
                   </div>
                 </div>
 
-                {/* Garantia (Completa o 9º Slot Perfeitamente!) */}
+                {/* Garantia */}
                 {(vehicle as any).garantia && (
                   <div className="flex items-start gap-3">
                     <div className="p-2.5 bg-ja-blue/10 dark:bg-ja-blue/20 rounded-xl text-ja-blue dark:text-blue-400 flex-shrink-0">

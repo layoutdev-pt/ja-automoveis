@@ -96,11 +96,56 @@ export function Admin() {
   };
 
   // ================= AÇÕES DO INVENTÁRIO =================
-  const handleDeleteVehicle = async (id: string) => {
-    if (!window.confirm('Tem a certeza? Esta ação é irreversível.')) return;
-    await supabase.from('vehicles').delete().eq('id', id);
-    setVehicles(vehicles.filter(v => v.id !== id));
+  const handleDeleteVehicle = async (vehicle: Vehicle) => {
+    if (!window.confirm('Tem a certeza? Esta ação apagará a viatura e todas as fotos associadas de forma irreversível.')) return;
+
+    try {
+      // 1. Extrair ficheiros a apagar do Storage (Evita duplicados através do Set)
+      const filesToDelete = new Set<string>();
+
+      // Imagens Visíveis (Crops ou Imagens diretas)
+      if (vehicle.fotos && Array.isArray(vehicle.fotos)) {
+        vehicle.fotos.forEach(url => {
+          if (url && typeof url === 'string') {
+            const fileName = url.split('/').pop();
+            if (fileName) filesToDelete.add(fileName);
+          }
+        });
+      }
+
+      // Imagens Mestras/Originais (guardadas nos metadados)
+      const fotosMeta = (vehicle as any).fotos_meta;
+      if (fotosMeta && Array.isArray(fotosMeta)) {
+        fotosMeta.forEach((meta: any) => {
+          if (meta && meta.masterUrl && typeof meta.masterUrl === 'string') {
+            const fileName = meta.masterUrl.split('/').pop();
+            if (fileName) filesToDelete.add(fileName);
+          }
+        });
+      }
+
+      // 2. Executar a eliminação dos ficheiros no Storage
+      if (filesToDelete.size > 0) {
+        const { error: storageError } = await supabase.storage
+          .from('vehicle_images')
+          .remove(Array.from(filesToDelete));
+          
+        if (storageError) {
+          console.error('Erro ao apagar imagens do Storage:', storageError);
+        }
+      }
+
+      // 3. Eliminar registo na Base de Dados
+      const { error: dbError } = await supabase.from('vehicles').delete().eq('id', vehicle.id);
+      if (dbError) throw dbError;
+
+      setVehicles(vehicles.filter(v => v.id !== vehicle.id));
+    } catch (error) {
+      console.error('Erro ao apagar veículo:', error);
+      alert('Ocorreu um erro ao apagar a viatura.');
+    }
   };
+
   const formatPrice = (price: number) => new Intl.NumberFormat('pt-PT', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(price);
 
   // ================= AÇÕES DE ADMINS =================
@@ -127,7 +172,8 @@ export function Admin() {
     <div className="min-h-screen bg-gray-50 dark:bg-[#0a0a0a] flex flex-col md:flex-row pt-20 transition-colors duration-500">
       
       {/* SIDEBAR */}
-<aside className="w-full md:w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 flex flex-col pt-20 transition-colors duration-500">        <div className="p-6 border-b border-gray-100 dark:border-gray-800">
+      <aside className="w-full md:w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 flex flex-col pt-20 transition-colors duration-500">
+        <div className="p-6 border-b border-gray-100 dark:border-gray-800">
           <h2 className="text-xl font-bold text-ja-dark dark:text-white">Painel de Gestão</h2>
           <p className="text-sm text-gray-500">Área Administrativa</p>
         </div>
@@ -189,7 +235,7 @@ export function Admin() {
                             <td className="py-4 px-6"><span className={`px-2.5 py-0.5 rounded-full text-xs font-medium ${vehicle.em_stock ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>{vehicle.em_stock ? 'Stock' : 'Vendido'}</span></td>
                             <td className="py-4 px-6 text-right">
                               <button onClick={() => { setEditingVehicle(vehicle); setIsAdding(true); }} className="text-gray-400 hover:text-ja-blue p-2"><Edit size={18} /></button>
-                              <button onClick={() => handleDeleteVehicle(vehicle.id)} className="text-gray-400 hover:text-red-600 p-2"><Trash2 size={18} /></button>
+                              <button onClick={() => handleDeleteVehicle(vehicle)} className="text-gray-400 hover:text-red-600 p-2"><Trash2 size={18} /></button>
                             </td>
                           </tr>
                         ))}

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { UploadCloud, X, Loader2, Save, FileText, ImagePlus, Plus, Trash2, Camera, RotateCcw, Move } from 'lucide-react';
+import { UploadCloud, X, Loader2, Save, FileText, ImagePlus, Plus, Trash2, Camera, RotateCcw, Move, Video } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import type { Vehicle } from '../../types';
 
@@ -17,6 +17,7 @@ type FormImage = {
   cropBlob?: Blob;      // Novo recorte gerado (Crop)
   cropUrl?: string;     // URL do recorte guardado (Front-end usa este)
   meta?: ImageMeta;     // Registo de metadados
+  isVideo?: boolean;    // Flag para identificar se é um vídeo
 };
 
 type MarcaData = { id: string; nome: string; };
@@ -210,13 +211,16 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
   const [equipSeguranca, setEquipSeguranca] = useState<string[]>(initialData?.equip_seguranca ? initialData.equip_seguranca.split(', ') : []);
   const [equipTecnologia, setEquipTecnologia] = useState<string[]>(initialData?.equip_tecnologia ? initialData.equip_tecnologia.split(', ') : []);
 
-  // Leitura JSON dos Metadados (Parse DB)
+  // Leitura JSON dos Metadados (Parse DB) com verificação de vídeo
+  const isVideoUrl = (url: string) => /\.(mp4|webm|ogg|mov)$/i.test(url);
+
   const parseInitialImage = (url?: string, meta?: any): FormImage | null => {
     if (!url) return null;
     return {
       cropUrl: url,
       masterUrl: meta?.masterUrl || url,
-      meta: meta || { zoom: 1, rotation: 0, panX: 0, panY: 0 }
+      meta: meta || { zoom: 1, rotation: 0, panX: 0, panY: 0 },
+      isVideo: isVideoUrl(url)
     };
   };
 
@@ -243,8 +247,12 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
 
   const handleColarTexto = () => setDescricao(textoPadrao);
 
-  // ================= HANDLERS DE IMAGENS (NOVOS UPLOADS SÃO MASTERS) =================
-  const createNewMaster = (file: File): FormImage => ({ masterFile: file, meta: { zoom: 1, rotation: 0, panX: 0, panY: 0 } });
+  // ================= HANDLERS DE IMAGENS E VÍDEOS =================
+  const createNewMaster = (file: File): FormImage => ({ 
+    masterFile: file, 
+    meta: { zoom: 1, rotation: 0, panX: 0, panY: 0 },
+    isVideo: file.type.startsWith('video/')
+  });
 
   const handleSingleFileDrop = (e: React.DragEvent<HTMLLabelElement>, setter: React.Dispatch<React.SetStateAction<FormImage | null>>) => {
     e.preventDefault(); e.currentTarget.classList.remove('border-ja-blue', 'bg-blue-50', 'dark:bg-blue-900/20');
@@ -275,6 +283,9 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
 
   // Injetar o Master e aplicar Metadados Antigos
   const openCropModal = (image: FormImage, target: 'perfil'|'top'|'bottom'|number) => {
+    // Bloqueia a abertura do cropper se for um vídeo
+    if (image.isVideo) return; 
+
     const src = image.masterUrl || (image.masterFile ? URL.createObjectURL(image.masterFile) : image.cropUrl);
     if (src) {
       setCropImage({ src, target });
@@ -380,7 +391,7 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
           await supabase.storage.from('vehicle_images').upload(fileName, item.cropBlob);
           finalCropUrl = supabase.storage.from('vehicle_images').getPublicUrl(fileName).data.publicUrl;
         } else if (!finalCropUrl && finalMasterUrl) {
-          finalCropUrl = finalMasterUrl; // Fallback
+          finalCropUrl = finalMasterUrl; // Fallback para vídeos ou imagens sem edição
         }
 
         return { cropUrl: finalCropUrl, meta: { ...item.meta, masterUrl: finalMasterUrl } };
@@ -409,8 +420,44 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
         tags: [], em_destaque: emDestaque, em_stock: emStock
       };
 
-      if (initialData) await supabase.from('vehicles').update(vehicleData).eq('id', initialData.id);
-      else await supabase.from('vehicles').insert([vehicleData]);
+      if (initialData) {
+        await supabase.from('vehicles').update(vehicleData).eq('id', initialData.id);
+        
+        // ================= GARBAGE COLLECTION: Apagar imagens velhas =================
+        try {
+          // URLs de imagens e vídeos que vão FICAR no carro
+          const finalUrls = new Set([
+            ...fotosLimpas,
+            ...fotosMeta.map(m => m?.masterUrl).filter(Boolean)
+          ]);
+
+          // URLs de imagens e vídeos que estavam no carro ANTES da edição
+          const initialUrls = new Set([
+            ...(initialData.fotos || []),
+            ...(initialData.fotos_meta || []).map((m: any) => m?.masterUrl).filter(Boolean)
+          ]);
+
+          // As que estavam antes mas já não estão na lista final, foram apagadas pelo utilizador!
+          const filesToDelete: string[] = [];
+          initialUrls.forEach(url => {
+            if (url && typeof url === 'string' && !finalUrls.has(url)) {
+              const fileName = url.split('/').pop();
+              if (fileName) filesToDelete.push(fileName);
+            }
+          });
+
+          // Vai ao Storage e elimina esses ficheiros fisicamente
+          if (filesToDelete.length > 0) {
+            await supabase.storage.from('vehicle_images').remove(filesToDelete);
+          }
+        } catch (cleanupError) {
+          console.error('Erro ao eliminar ficheiros órfãos do Storage:', cleanupError);
+        }
+        // ==============================================================================
+
+      } else {
+        await supabase.from('vehicles').insert([vehicleData]);
+      }
       
       onSuccess();
     } catch (err: any) {
@@ -421,7 +468,7 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
     }
   };
 
-  // Resolve a imagem a apresentar na Listagem do Editor
+  // Resolve o ficheiro a apresentar na Listagem do Editor
   const getDisplayUrl = (state: FormImage) => state.cropBlob ? URL.createObjectURL(state.cropBlob) : state.cropUrl || (state.masterFile ? URL.createObjectURL(state.masterFile) : '');
 
   const SingleUploadBox = ({ state, setter, label, format, targetName }: { state: FormImage | null, setter: any, label: string, format: string, targetName: 'perfil'|'top'|'bottom' }) => (
@@ -430,7 +477,7 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
       {state ? (
         <div className="relative aspect-[4/3] rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 group shadow-sm">
           <img src={getDisplayUrl(state)} alt={label} className="w-full h-full object-cover" />
-          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-4 transition-opacity duration-300">
+          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-4 transition-opacity duration-300 z-20">
             <button type="button" onClick={() => openCropModal(state, targetName)} className="bg-white text-gray-900 p-2.5 rounded-full hover:scale-110 transition-transform shadow-lg" title="Ajustar Imagem"><Camera size={18} /></button>
             <button type="button" onClick={() => setter(null)} className="bg-red-500 text-white p-2.5 rounded-full hover:scale-110 transition-transform shadow-lg" title="Remover"><X size={18} /></button>
           </div>
@@ -622,12 +669,12 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
             <textarea value={descricao} onChange={e => setDescricao(e.target.value)} rows={5} placeholder="Escreva a descrição livremente..." className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-ja-blue/20 outline-none bg-white dark:bg-gray-800 text-ja-dark dark:text-white" />
           </div>
 
-          {/* ================= FOTOS ================= */}
+          {/* ================= FOTOS E VÍDEOS ================= */}
           <div className="pt-6 border-t border-gray-100 dark:border-gray-800">
             <div className="mb-6 flex justify-between items-end">
               <div>
-                <h3 className="text-xl font-bold text-ja-dark dark:text-white">Estrutura de Fotografias</h3>
-                <p className="text-sm text-gray-500 mt-1">Faça upload ou arraste as imagens para as respetivas caixas.</p>
+                <h3 className="text-xl font-bold text-ja-dark dark:text-white">Estrutura de Fotografias / Vídeos</h3>
+                <p className="text-sm text-gray-500 mt-1">Faça upload ou arraste as imagens e vídeos para as respetivas caixas.</p>
               </div>
             </div>
             
@@ -643,18 +690,36 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
                   <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">2. Galeria Principal</span>
                   <label onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleMultipleFiles} className="flex flex-col items-center justify-center w-full h-[140px] border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-xl cursor-pointer bg-gray-50 dark:bg-gray-800/50 hover:bg-gray-100 transition-colors">
                     <UploadCloud className="w-8 h-8 text-gray-400 mb-2" />
-                    <span className="text-sm font-semibold text-ja-blue hover:underline px-4 text-center">Adicionar Múltiplas Fotos</span>
+                    <span className="text-sm font-semibold text-ja-blue hover:underline px-4 text-center">Adicionar Múltiplas Fotos/Vídeos</span>
                     <span className="text-xs text-gray-500 mt-1">Upload ou Drag & Drop</span>
-                    <input type="file" multiple accept="image/*" className="hidden" onChange={handleMultipleFiles} />
+                    {/* INPUT ATUALIZADO PARA ACEITAR VÍDEOS */}
+                    <input type="file" multiple accept="image/*,video/*" className="hidden" onChange={handleMultipleFiles} />
                   </label>
                   
                   {galeria.length > 0 && (
                     <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 mt-3">
                       {galeria.map((img, idx) => (
                         <div key={idx} className="relative aspect-square rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 group shadow-sm">
-                          <img src={getDisplayUrl(img)} className="w-full h-full object-cover" />
-                          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-2 transition-opacity">
-                            <button type="button" onClick={() => openCropModal(img, idx)} className="bg-white text-gray-900 p-1.5 rounded-full hover:scale-110"><Camera size={14} /></button>
+                          
+                          {/* RENDERIZAÇÃO CONDICIONAL: IMAGEM OU VÍDEO */}
+                          {img.isVideo ? (
+                            <video src={getDisplayUrl(img)} className="w-full h-full object-cover" muted playsInline />
+                          ) : (
+                            <img src={getDisplayUrl(img)} className="w-full h-full object-cover" />
+                          )}
+                          
+                          {/* ÍCONE INDICADOR SE FOR VÍDEO */}
+                          {img.isVideo && (
+                            <div className="absolute top-1.5 left-1.5 bg-black/60 backdrop-blur-md p-1 rounded-md z-10">
+                              <Video size={12} className="text-white" />
+                            </div>
+                          )}
+
+                          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-2 transition-opacity z-20">
+                            {/* Oculta a ferramenta de corte se for vídeo */}
+                            {!img.isVideo && (
+                              <button type="button" onClick={() => openCropModal(img, idx)} className="bg-white text-gray-900 p-1.5 rounded-full hover:scale-110"><Camera size={14} /></button>
+                            )}
                             <button type="button" onClick={() => removeGaleriaItem(idx)} className="bg-red-500 text-white p-1.5 rounded-full hover:scale-110"><X size={14} /></button>
                           </div>
                         </div>

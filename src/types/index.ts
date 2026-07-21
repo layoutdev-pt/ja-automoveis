@@ -26,4 +26,5 @@ export interface Vehicle {
   em_destaque: boolean;
   em_stock: boolean;
   created_at: string;
+  fotos_meta?: any[];
 }

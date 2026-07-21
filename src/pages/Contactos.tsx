@@ -186,10 +186,9 @@ export function Contactos() {
                   </div>
                   <div>
                     <h4 className="font-semibold text-ja-dark dark:text-white transition-colors duration-500">Horário</h4>
-                    <p className="text-gray-500 dark:text-gray-400 mt-1 text-sm transition-colors duration-500">Seg - Sex: 09:00 - 19:00</p>
-                    <p className="text-gray-500 dark:text-gray-400 text-sm transition-colors duration-500">Sábado: 09:30 - 13:00</p>
-                    <p className="text-gray-400 dark:text-gray-500 text-sm mt-1 transition-colors duration-500">Domingo: Encerrado</p>
-                  </div>
+                    <p className="text-gray-500 dark:text-gray-400 mt-1 text-sm transition-colors duration-500">Seg - Sáb: 09:30 - 19:30</p>
+                    <p className="text-gray-500 dark:text-gray-400 text-sm transition-colors duration-500">Domingo: 14:30 - 19:30</p>
+                </div>
                 </div>
               </div>
 
