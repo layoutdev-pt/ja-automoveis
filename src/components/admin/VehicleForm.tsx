@@ -12,12 +12,12 @@ interface VehicleFormProps {
 // ================= TIPOS DE DADOS NÃO DESTRUTIVOS =================
 type ImageMeta = { zoom: number; rotation: number; panX: number; panY: number; masterUrl?: string };
 type FormImage = {
-  masterFile?: File;    // Ficheiro original selecionado (Master)
-  masterUrl?: string;   // URL do original guardado
-  cropBlob?: Blob;      // Novo recorte gerado (Crop)
-  cropUrl?: string;     // URL do recorte guardado (Front-end usa este)
-  meta?: ImageMeta;     // Registo de metadados
-  isVideo?: boolean;    // Flag para identificar se é um vídeo
+  masterFile?: File;    
+  masterUrl?: string;   
+  cropBlob?: Blob;      
+  cropUrl?: string;     
+  meta?: ImageMeta;     
+  isVideo?: boolean;    
 };
 
 type MarcaData = { id: string; nome: string; };
@@ -211,7 +211,6 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
   const [equipSeguranca, setEquipSeguranca] = useState<string[]>(initialData?.equip_seguranca ? initialData.equip_seguranca.split(', ') : []);
   const [equipTecnologia, setEquipTecnologia] = useState<string[]>(initialData?.equip_tecnologia ? initialData.equip_tecnologia.split(', ') : []);
 
-  // Leitura JSON dos Metadados (Parse DB) com verificação de vídeo
   const isVideoUrl = (url: string) => /\.(mp4|webm|ogg|mov)$/i.test(url);
 
   const parseInitialImage = (url?: string, meta?: any): FormImage | null => {
@@ -234,9 +233,10 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // ================= ESTADOS DO CROPPER (MASTER INJECTION) =================
+  // ================= ESTADOS DO CROPPER (SMART/DYNAMIC ASPECT RATIO) =================
   const cropperRef = useRef<HTMLDivElement>(null);
   const [cropImage, setCropImage] = useState<{ src: string; target: 'perfil'|'top'|'bottom'|number } | null>(null);
+  const [cropAspectRatio, setCropAspectRatio] = useState<number>(1); // <--- ESTADO NOVO: Proporção Dinâmica
   const [cropZoom, setCropZoom] = useState(1);
   const [cropRotation, setCropRotation] = useState(0);
   const [cropPan, setCropPan] = useState({ x: 0, y: 0 });
@@ -281,17 +281,21 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
 
   const removeGaleriaItem = (indexToRemove: number) => { setGaleria(galeria.filter((_, index) => index !== indexToRemove)); };
 
-  // Injetar o Master e aplicar Metadados Antigos
   const openCropModal = (image: FormImage, target: 'perfil'|'top'|'bottom'|number) => {
-    // Bloqueia a abertura do cropper se for um vídeo
     if (image.isVideo) return; 
 
     const src = image.masterUrl || (image.masterFile ? URL.createObjectURL(image.masterFile) : image.cropUrl);
     if (src) {
-      setCropImage({ src, target });
-      setCropZoom(image.meta?.zoom || 1);
-      setCropRotation(image.meta?.rotation || 0);
-      setCropPan({ x: image.meta?.panX || 0, y: image.meta?.panY || 0 });
+      // MAGIA ACONTECE AQUI: Lemos a proporção da imagem antes de abrir
+      const img = new Image();
+      img.src = src;
+      img.onload = () => {
+        setCropAspectRatio(img.width / img.height);
+        setCropImage({ src, target });
+        setCropZoom(image.meta?.zoom || 1);
+        setCropRotation(image.meta?.rotation || 0);
+        setCropPan({ x: image.meta?.panX || 0, y: image.meta?.panY || 0 });
+      };
     }
   };
 
@@ -316,10 +320,20 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
     const container = cropperRef.current;
     
     const canvas = document.createElement('canvas');
-    canvas.width = 800; canvas.height = 600;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
     
+    // DEFINIR O CANVAS BASEADO NA PROPORÇÃO DINÂMICA
+    let canvasWidth = 1000;
+    let canvasHeight = 1000 / cropAspectRatio;
+    if (cropAspectRatio < 1) { // Imagens verticais
+      canvasHeight = 1000;
+      canvasWidth = 1000 * cropAspectRatio;
+    }
+    
+    canvas.width = canvasWidth;
+    canvas.height = canvasHeight;
+
     const img = new Image();
     img.crossOrigin = "anonymous"; 
     img.src = cropImage.src;
@@ -328,6 +342,8 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+    // Como o Canvas tem agora exatamente a mesma proporção da imagem original,
+    // usamos Cover (Math.max) e ele vai preencher de forma 100% perfeita sem cortar nada.
     const scaleCover = Math.max(canvas.width / img.width, canvas.height / img.height);
     const finalScale = scaleCover * cropZoom;
     const baseX = (canvas.width / 2) - (img.width / 2) * finalScale;
@@ -377,7 +393,6 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
         let finalMasterUrl = item.masterUrl;
         let finalCropUrl = item.cropUrl;
 
-        // Guarda o Ficheiro Mestre Original na Nuvem
         if (item.masterFile) {
           const ext = item.masterFile.name.split('.').pop();
           const fileName = `master_${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${ext}`;
@@ -385,13 +400,12 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
           finalMasterUrl = supabase.storage.from('vehicle_images').getPublicUrl(fileName).data.publicUrl;
         }
 
-        // Guarda a Versão Derivada Processada (Corte)
         if (item.cropBlob) {
           const fileName = `crop_${Math.random().toString(36).substring(2, 15)}_${Date.now()}.jpg`;
           await supabase.storage.from('vehicle_images').upload(fileName, item.cropBlob);
           finalCropUrl = supabase.storage.from('vehicle_images').getPublicUrl(fileName).data.publicUrl;
         } else if (!finalCropUrl && finalMasterUrl) {
-          finalCropUrl = finalMasterUrl; // Fallback para vídeos ou imagens sem edição
+          finalCropUrl = finalMasterUrl;
         }
 
         return { cropUrl: finalCropUrl, meta: { ...item.meta, masterUrl: finalMasterUrl } };
@@ -416,28 +430,24 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
         equip_seguranca: equipSeguranca.length > 0 ? equipSeguranca.join(', ') : null,
         equip_tecnologia: equipTecnologia.length > 0 ? equipTecnologia.join(', ') : null,
         fotos: fotosLimpas,
-        fotos_meta: fotosMeta, // Metadados registados!
+        fotos_meta: fotosMeta, 
         tags: [], em_destaque: emDestaque, em_stock: emStock
       };
 
       if (initialData) {
         await supabase.from('vehicles').update(vehicleData).eq('id', initialData.id);
         
-        // ================= GARBAGE COLLECTION: Apagar imagens velhas =================
         try {
-          // URLs de imagens e vídeos que vão FICAR no carro
           const finalUrls = new Set([
             ...fotosLimpas,
             ...fotosMeta.map(m => m?.masterUrl).filter(Boolean)
           ]);
 
-          // URLs de imagens e vídeos que estavam no carro ANTES da edição
           const initialUrls = new Set([
             ...(initialData.fotos || []),
             ...(initialData.fotos_meta || []).map((m: any) => m?.masterUrl).filter(Boolean)
           ]);
 
-          // As que estavam antes mas já não estão na lista final, foram apagadas pelo utilizador!
           const filesToDelete: string[] = [];
           initialUrls.forEach(url => {
             if (url && typeof url === 'string' && !finalUrls.has(url)) {
@@ -446,15 +456,12 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
             }
           });
 
-          // Vai ao Storage e elimina esses ficheiros fisicamente
           if (filesToDelete.length > 0) {
             await supabase.storage.from('vehicle_images').remove(filesToDelete);
           }
         } catch (cleanupError) {
           console.error('Erro ao eliminar ficheiros órfãos do Storage:', cleanupError);
         }
-        // ==============================================================================
-
       } else {
         await supabase.from('vehicles').insert([vehicleData]);
       }
@@ -468,7 +475,6 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
     }
   };
 
-  // Resolve o ficheiro a apresentar na Listagem do Editor
   const getDisplayUrl = (state: FormImage) => state.cropBlob ? URL.createObjectURL(state.cropBlob) : state.cropUrl || (state.masterFile ? URL.createObjectURL(state.masterFile) : '');
 
   const SingleUploadBox = ({ state, setter, label, format, targetName }: { state: FormImage | null, setter: any, label: string, format: string, targetName: 'perfil'|'top'|'bottom' }) => (
@@ -476,9 +482,20 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
       <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">{label}</span>
       {state ? (
         <div className="relative aspect-[4/3] rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 group shadow-sm">
-          <img src={getDisplayUrl(state)} alt={label} className="w-full h-full object-cover" />
+          {state.isVideo ? (
+            <video src={getDisplayUrl(state)} className="w-full h-full object-cover" muted playsInline />
+          ) : (
+            <img src={getDisplayUrl(state)} alt={label} className="w-full h-full object-cover" />
+          )}
+          {state.isVideo && (
+            <div className="absolute top-1.5 left-1.5 bg-black/60 backdrop-blur-md p-1 rounded-md z-10">
+              <Video size={12} className="text-white" />
+            </div>
+          )}
           <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-4 transition-opacity duration-300 z-20">
-            <button type="button" onClick={() => openCropModal(state, targetName)} className="bg-white text-gray-900 p-2.5 rounded-full hover:scale-110 transition-transform shadow-lg" title="Ajustar Imagem"><Camera size={18} /></button>
+            {!state.isVideo && (
+              <button type="button" onClick={() => openCropModal(state, targetName)} className="bg-white text-gray-900 p-2.5 rounded-full hover:scale-110 transition-transform shadow-lg" title="Ajustar Imagem"><Camera size={18} /></button>
+            )}
             <button type="button" onClick={() => setter(null)} className="bg-red-500 text-white p-2.5 rounded-full hover:scale-110 transition-transform shadow-lg" title="Remover"><X size={18} /></button>
           </div>
         </div>
@@ -487,7 +504,7 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
           <ImagePlus className="w-8 h-8 text-gray-400 mb-2" />
           <span className="text-sm font-semibold text-ja-dark dark:text-gray-300 mb-1">Upload ou Drag & Drop</span>
           <span className="text-xs text-gray-500 text-center px-4">{format}</span>
-          <input type="file" accept="image/*" className="hidden" onChange={(e) => handleSingleFile(e, setter)} />
+          <input type="file" accept="image/*,video/*" className="hidden" onChange={(e) => handleSingleFile(e, setter)} />
         </label>
       )}
     </div>
@@ -692,7 +709,6 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
                     <UploadCloud className="w-8 h-8 text-gray-400 mb-2" />
                     <span className="text-sm font-semibold text-ja-blue hover:underline px-4 text-center">Adicionar Múltiplas Fotos/Vídeos</span>
                     <span className="text-xs text-gray-500 mt-1">Upload ou Drag & Drop</span>
-                    {/* INPUT ATUALIZADO PARA ACEITAR VÍDEOS */}
                     <input type="file" multiple accept="image/*,video/*" className="hidden" onChange={handleMultipleFiles} />
                   </label>
                   
@@ -701,14 +717,12 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
                       {galeria.map((img, idx) => (
                         <div key={idx} className="relative aspect-square rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700 group shadow-sm">
                           
-                          {/* RENDERIZAÇÃO CONDICIONAL: IMAGEM OU VÍDEO */}
                           {img.isVideo ? (
                             <video src={getDisplayUrl(img)} className="w-full h-full object-cover" muted playsInline />
                           ) : (
                             <img src={getDisplayUrl(img)} className="w-full h-full object-cover" />
                           )}
                           
-                          {/* ÍCONE INDICADOR SE FOR VÍDEO */}
                           {img.isVideo && (
                             <div className="absolute top-1.5 left-1.5 bg-black/60 backdrop-blur-md p-1 rounded-md z-10">
                               <Video size={12} className="text-white" />
@@ -716,7 +730,6 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
                           )}
 
                           <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-2 transition-opacity z-20">
-                            {/* Oculta a ferramenta de corte se for vídeo */}
                             {!img.isVideo && (
                               <button type="button" onClick={() => openCropModal(img, idx)} className="bg-white text-gray-900 p-1.5 rounded-full hover:scale-110"><Camera size={14} /></button>
                             )}
@@ -754,47 +767,57 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
       {/* ================= MODAL DE CORTE COM INJEÇÃO METADATA ================= */}
       {cropImage && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 p-4">
-          <div className="bg-[#18181b] rounded-3xl w-full max-w-lg overflow-hidden shadow-2xl border border-gray-800 animate-in fade-in zoom-in-95 duration-300">
+          <div className="bg-[#18181b] rounded-3xl w-full max-w-2xl overflow-hidden shadow-2xl border border-gray-800 animate-in fade-in zoom-in-95 duration-300 flex flex-col max-h-[90vh]">
             
-            <div className="p-4 border-b border-gray-800 flex justify-between items-center bg-black/50">
+            <div className="p-4 border-b border-gray-800 flex justify-between items-center bg-black/50 shrink-0">
               <h3 className="text-white font-semibold flex items-center gap-2"><Camera size={18} className="text-ja-blue"/> Cortar / Ajustar Imagem</h3>
               <button onClick={() => setCropImage(null)} className="text-gray-400 hover:text-white p-1 rounded-full"><X size={20} /></button>
             </div>
             
-            <div 
-              ref={cropperRef}
-              className="relative w-full aspect-[4/3] bg-black overflow-hidden flex items-center justify-center cursor-grab active:cursor-grabbing"
-              onMouseDown={onMouseDown} onMouseMove={onMouseMove} onMouseUp={onMouseUp} onMouseLeave={onMouseUp}
-              onTouchStart={onMouseDown} onTouchMove={onMouseMove} onTouchEnd={onMouseUp}
-              style={{ touchAction: 'none' }}
-            >
-              <img 
-                src={cropImage.src} 
-                draggable={false}
+            {/* O CONTENTOR DINÂMICO QUE ADAPTA A PROPORÇÃO */}
+            <div className="w-full bg-[#0a0a0a] flex items-center justify-center p-4 sm:p-6 overflow-hidden flex-1 min-h-[30vh]">
+              <div 
+                ref={cropperRef}
+                className="relative overflow-hidden cursor-grab active:cursor-grabbing ring-1 ring-white/10 shadow-2xl"
+                onMouseDown={onMouseDown} onMouseMove={onMouseMove} onMouseUp={onMouseUp} onMouseLeave={onMouseUp}
+                onTouchStart={onMouseDown} onTouchMove={onMouseMove} onTouchEnd={onMouseUp}
                 style={{ 
-                  transform: `translate(${cropPan.x}px, ${cropPan.y}px) scale(${cropZoom}) rotate(${cropRotation}deg)`,
-                  objectFit: 'cover', width: '100%', height: '100%',
-                  transition: isDragging ? 'none' : 'transform 0.1s ease-out'
-                }} 
-              />
-              
-              {cropPan.x === 0 && cropPan.y === 0 && !isDragging && (
-                <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-black/60 text-white px-3 py-1.5 rounded-full text-xs flex items-center gap-1.5 pointer-events-none z-20">
-                  <Move size={14} /> Arraste a imagem para reposicionar
-                </div>
-              )}
-              
-              <div className="absolute inset-0 pointer-events-none border-2 border-white/50 z-10">
-                <div className="absolute w-full h-full flex flex-col justify-evenly">
-                  <div className="w-full border-t border-white/30"></div><div className="w-full border-t border-white/30"></div>
-                </div>
-                <div className="absolute w-full h-full flex justify-evenly">
-                  <div className="h-full border-l border-white/30"></div><div className="h-full border-l border-white/30"></div>
+                  // Calcula o tamanho da caixa consoante a imagem for horizontal ou vertical
+                  width: cropAspectRatio > 1 ? '100%' : 'auto',
+                  height: cropAspectRatio > 1 ? 'auto' : '100%',
+                  aspectRatio: cropAspectRatio,
+                  maxHeight: '100%',
+                  touchAction: 'none'
+                }}
+              >
+                <img 
+                  src={cropImage.src} 
+                  draggable={false}
+                  style={{ 
+                    transform: `translate(${cropPan.x}px, ${cropPan.y}px) scale(${cropZoom}) rotate(${cropRotation}deg)`,
+                    objectFit: 'cover', width: '100%', height: '100%',
+                    transition: isDragging ? 'none' : 'transform 0.1s ease-out'
+                  }} 
+                />
+                
+                {cropPan.x === 0 && cropPan.y === 0 && !isDragging && (
+                  <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-black/60 text-white px-3 py-1.5 rounded-full text-xs flex items-center gap-1.5 pointer-events-none z-20 whitespace-nowrap">
+                    <Move size={14} /> Arraste para reposicionar
+                  </div>
+                )}
+                
+                <div className="absolute inset-0 pointer-events-none border border-white/30 z-10">
+                  <div className="absolute w-full h-full flex flex-col justify-evenly">
+                    <div className="w-full border-t border-white/20"></div><div className="w-full border-t border-white/20"></div>
+                  </div>
+                  <div className="absolute w-full h-full flex justify-evenly">
+                    <div className="h-full border-l border-white/20"></div><div className="h-full border-l border-white/20"></div>
+                  </div>
                 </div>
               </div>
             </div>
 
-            <div className="p-6 bg-[#18181b] space-y-4">
+            <div className="p-6 bg-[#18181b] space-y-4 shrink-0">
               <div>
                 <label className="text-white text-xs font-semibold mb-2 flex justify-between">
                   <span>Zoom (Aproximar)</span><span className="text-gray-400">{Math.round(cropZoom * 100)}%</span>
