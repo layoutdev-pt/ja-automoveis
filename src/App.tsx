@@ -5,6 +5,8 @@ import { Header } from './components/layout/Header';
 import { Footer } from './components/layout/Footer';
 import { WhatsAppButton } from './components/layout/WhatsAppButton';
 import { ScrollToTop } from './components/layout/ScrollToTop';
+import { CookieConsent } from './components/ui/CookieConsent'; // Importação do banner global
+
 import { Home } from './pages/Home';
 import { Stand } from './pages/Stand';
 import { VehicleDetails } from './pages/VehicleDetails';
@@ -15,6 +17,7 @@ import { Contactos } from './pages/Contactos';
 import { Sobre } from './pages/Sobre';
 import { PrivacyPolicy } from './pages/PrivacyPolicy';
 import { TermsConditions } from './pages/TermsConditions';
+import { CookiesPolicy } from './pages/CookiesPolicy'; // Importação da nova página
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user } = useAuth();
@@ -23,7 +26,6 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   }
   return <>{children}</>;
 };
-
 
 function AppRoutes() {
   return (
@@ -43,13 +45,9 @@ function AppRoutes() {
             <Route path="/sobre" element={<Sobre />} />
             <Route path="/politica-privacidade" element={<PrivacyPolicy />} />
             <Route path="/termos-condicoes" element={<TermsConditions />} />
-            
+            <Route path="/cookies" element={<CookiesPolicy />} /> {/* Nova Rota */}
 
-            
             {/* A Rota Protegida */}
-            
-
-
             <Route 
               path="/admin" 
               element={
@@ -59,16 +57,12 @@ function AppRoutes() {
               } 
             />
 
-            
-
           </Routes>
-
-          
-          
         </main>
 
         <WhatsAppButton />
         <Footer />
+        <CookieConsent /> {/* Banner inserido globalmente */}
       </div>
     </Router>
   );

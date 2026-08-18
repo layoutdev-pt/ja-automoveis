@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { 
   ArrowLeft, Loader2, Check, ChevronLeft, ChevronRight, MessageSquare,
   Calendar, Gauge, Fuel, Settings2, Zap, Car, BadgeCheck, CheckCircle, XCircle,
-  ShieldCheck, Video, Play, Pause // Adicionados Play e Pause
+  ShieldCheck, Video, Play, Pause
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import type { Vehicle } from '../types';
@@ -38,7 +38,6 @@ export function VehicleDetails() {
     fetchVehicle();
   }, [id]);
 
-  // Sempre que mudamos de slide, assumimos que o vídeo novo vai fazer autoPlay
   useEffect(() => {
     setIsPlaying(true);
   }, [currentSlide]);
@@ -49,19 +48,20 @@ export function VehicleDetails() {
   const formatPrice = (price: number) => new Intl.NumberFormat('pt-PT', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(price);
   const formatNumber = (num: number) => new Intl.NumberFormat('pt-PT').format(num);
 
-  const fotoPerfil = vehicle.fotos[0];
-  const destaqueTop = vehicle.fotos[1] || fotoPerfil; 
-  const destaqueBottom = vehicle.fotos[2] || fotoPerfil; 
-  const galeriaRaw = vehicle.fotos.slice(3).filter(f => f !== '');
-  const galeria = galeriaRaw.length > 0 ? galeriaRaw : [fotoPerfil]; 
+  // ================= CORREÇÃO DA GALERIA =================
+  // Agora a galeria inclui TUDO, garantindo que o vídeo (que será forçado para o índice 0) aparece no slider!
+  const galeriaRaw = vehicle.fotos.filter(f => f && f.trim() !== '');
+  const galeria = galeriaRaw.length > 0 ? galeriaRaw : [];
+  
+  const fotoPerfil = galeria.length > 0 ? galeria[0] : '';
+  const destaqueTop = galeria.length > 1 ? galeria[1] : fotoPerfil; 
+  const destaqueBottom = galeria.length > 2 ? galeria[2] : fotoPerfil; 
 
-  // ================= FUNÇÃO PARA DETETAR VÍDEOS =================
   const isVideoUrl = (url: string) => typeof url === 'string' && /\.(mp4|webm|ogg|mov|m4v)$/i.test(url);
 
-  // ================= TOGGLE DO VÍDEO (PLAY/PAUSE) =================
   const togglePlay = (e?: React.MouseEvent) => {
     e?.preventDefault();
-    e?.stopPropagation(); // Evita conflitos com outros cliques
+    e?.stopPropagation(); 
     if (videoRef.current) {
       if (videoRef.current.paused) {
         videoRef.current.play();
@@ -133,7 +133,6 @@ export function VehicleDetails() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-16">
           <div className="lg:col-span-2 relative w-full h-[300px] sm:h-[400px] lg:h-[500px] rounded-xl sm:rounded-2xl overflow-hidden bg-gray-100 dark:bg-gray-900 group shadow-sm border border-gray-200/50 dark:border-gray-800">
             
-            {/* RENDERIZAÇÃO CONDICIONAL: IMAGEM VS VÍDEO PRINCIPAL */}
             {isVideoUrl(galeria[currentSlide]) ? (
               <>
                 <video 
@@ -149,7 +148,6 @@ export function VehicleDetails() {
                   className="absolute inset-0 w-full h-full object-contain bg-black transition-transform duration-700 cursor-pointer" 
                 />
                 
-                {/* Botão Play/Pause Central (Estilo Moderno) */}
                 <button 
                   onClick={togglePlay}
                   className={`absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-20 w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center bg-black/40 hover:bg-black/70 text-white rounded-full backdrop-blur-md transition-all duration-300 pointer-events-none group-hover:pointer-events-auto ${
@@ -186,7 +184,6 @@ export function VehicleDetails() {
                         onClick={() => navigateToSlide(idx)} 
                         className={`relative w-14 h-10 sm:w-20 sm:h-14 rounded-lg sm:rounded-xl flex-shrink-0 overflow-hidden border-2 ${currentSlide === idx ? 'border-white scale-105' : 'border-transparent opacity-60 hover:opacity-100'} transition-all`}
                       >
-                        {/* MINIATURA: IMAGEM VS VÍDEO */}
                         {isVid ? (
                           <>
                             <video src={galeria[idx]} className="w-full h-full object-cover" muted playsInline />
