@@ -431,20 +431,32 @@ export function VehicleDetails() {
 
               <div className="w-full h-px bg-gray-200 dark:bg-gray-800 my-6"></div>
 
+              {/* LÓGICA DE TEXTO PARA CARROS VENDIDOS VS EM STOCK */}
               <h4 className="text-xl font-bold text-ja-dark dark:text-white mb-3">
-                Tem interesse nesta viatura?
+                {vehicle.em_stock ? 'Tem interesse nesta viatura?' : 'Viatura Indisponível'}
               </h4>
               <p className="text-sm text-gray-500 dark:text-gray-400 mb-8 leading-relaxed">
-                A nossa equipa de especialistas está pronta para esclarecer todas as suas dúvidas e agendar uma visita.
+                {vehicle.em_stock 
+                  ? 'A nossa equipa de especialistas está pronta para esclarecer todas as suas dúvidas e agendar uma visita.'
+                  : 'Esta viatura já foi vendida. Fale com a nossa equipa para encontrarmos um modelo idêntico e importarmos para si!'}
               </p>
               
               <Link 
                 to="/contactos"
-                state={{ scrollToForm: true, assunto: `Interesse: ${vehicle.marca} ${vehicle.modelo} (${vehicle.ano})` }}
-                className="w-full flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white font-bold py-4 px-6 rounded-xl transition-all duration-300 shadow-md hover:shadow-lg"
+                state={{ 
+                  scrollToForm: true, 
+                  assunto: vehicle.em_stock 
+                    ? `Interesse: ${vehicle.marca} ${vehicle.modelo} (${vehicle.ano})` 
+                    : `Procuro Semelhante: ${vehicle.marca} ${vehicle.modelo}` 
+                }}
+                className={`w-full flex items-center justify-center gap-2 font-bold py-4 px-6 rounded-xl transition-all duration-300 shadow-md hover:shadow-lg ${
+                  vehicle.em_stock 
+                    ? 'bg-emerald-500 hover:bg-emerald-600 text-white' 
+                    : 'bg-ja-dark hover:bg-gray-800 dark:bg-gray-800 dark:hover:bg-gray-700 text-white'
+                }`}
               >
                 <MessageSquare size={20} />
-                Falar com a Equipa
+                {vehicle.em_stock ? 'Falar com a Equipa' : 'Procurar Semelhante'}
               </Link>
             </div>
           </div>
