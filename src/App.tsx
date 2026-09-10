@@ -6,6 +6,7 @@ import { Footer } from './components/layout/Footer';
 import { WhatsAppButton } from './components/layout/WhatsAppButton';
 import { ScrollToTop } from './components/layout/ScrollToTop';
 import { CookieConsent } from './components/ui/CookieConsent'; // Importação do banner global
+import { GarageDoorSplash } from './components/ui/GarageDoorSplash'; // Animação de entrada Porta de Garagem
 
 import { Home } from './pages/Home';
 import { Stand } from './pages/Stand';
@@ -30,6 +31,7 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 function AppRoutes() {
   return (
     <Router>
+      <GarageDoorSplash />
       <ScrollToTop />
       <div className="flex flex-col min-h-screen bg-gray-50">
         <Header />
