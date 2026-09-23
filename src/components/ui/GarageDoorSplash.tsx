@@ -137,13 +137,13 @@ export function GarageDoorSplash({
 
   return (
     <div
-      className="fixed inset-0 z-[999999] pointer-events-auto select-none overflow-hidden"
+      className="fixed inset-0 z-9999999 pointer-events-auto select-none overflow-hidden"
       aria-label="Abertura JA Automóveis"
       onClick={skipAnimation}
     >
       {/* ================= SECÇÃO SUPERIOR (PORTÃO DO TOPO) ================= */}
       <div
-        className="absolute top-0 left-0 w-full h-[50.2vh] bg-black will-change-transform"
+        className="absolute top-0 left-0 w-full h-[50.2vh] bg-gradient-to-br from-ja-dark to-ja-blue bg-[length:100vw_100vh] bg-top will-change-transform"
         style={{
           transform: isDoorsOpen
             ? "translate3d(0, -100%, 0)"
@@ -156,7 +156,7 @@ export function GarageDoorSplash({
 
       {/* ================= SECÇÃO INFERIOR (PORTÃO DA BASE) ================= */}
       <div
-        className="absolute bottom-0 left-0 w-full h-[50.2vh] bg-black will-change-transform"
+        className="absolute bottom-0 left-0 w-full h-[50.2vh] bg-gradient-to-br from-ja-dark to-ja-blue bg-[length:100vw_100vh] bg-bottom will-change-transform"
         style={{
           transform: isDoorsOpen
             ? "translate3d(0, 100%, 0)"
@@ -204,17 +204,7 @@ export function GarageDoorSplash({
         </div>
       </div>
 
-      {/* Indicador discreto para avançar (opcional, desaparece suavemente) */}
-      <button
-        type="button"
-        onClick={(e) => {
-          e.stopPropagation();
-          skipAnimation();
-        }}
-        className="absolute bottom-6 right-6 z-20 text-gray-400 hover:text-white text-xs uppercase tracking-widest font-mono opacity-40 hover:opacity-100 transition-opacity cursor-pointer bg-black/40 px-3 py-1.5 rounded-full border border-white/10"
-      >
-        Saltar [ESC]
-      </button>
+
     </div>
   );
 }
