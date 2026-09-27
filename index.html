@@ -5,6 +5,16 @@
     <link rel="icon" type="image/png" href="/logo_round.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
+
+    <!--
+      Verificação do Google Search Console pelo método "HTML tag".
+      Define VITE_GSC_VERIFICATION nas Environment Variables da Vercel com o
+      valor do atributo content que o Search Console te dá. Se não estiver
+      definida, o passo de build remove esta linha (não fica lixo no HTML).
+      Nota: com acesso ao DNS, o método TXT é preferível — verifica o domínio
+      inteiro e não depende do conteúdo de nenhuma página.
+    -->
+    <meta name="google-site-verification" content="%VITE_GSC_VERIFICATION%" />
     <title data-ssr-head data-fallback-head>JA Automóveis</title>
     <meta
       data-ssr-head

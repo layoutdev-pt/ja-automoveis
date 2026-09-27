@@ -4,6 +4,24 @@
   "trailingSlash": false,
   "redirects": [
     {
+      "source": "/index.php/carros-covilha/:rest*",
+      "has": [{ "type": "host", "value": "(www\\.)?ja-automoveis\\.pt" }],
+      "destination": "https://jaautomoveis.pt/stand",
+      "permanent": true
+    },
+    {
+      "source": "/index.php/:rest*",
+      "has": [{ "type": "host", "value": "(www\\.)?ja-automoveis\\.pt" }],
+      "destination": "https://jaautomoveis.pt/",
+      "permanent": true
+    },
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "(www\\.)?ja-automoveis\\.pt" }],
+      "destination": "https://jaautomoveis.pt/:path*",
+      "permanent": true
+    },
+    {
       "source": "/index.html",
       "destination": "/",
       "permanent": true

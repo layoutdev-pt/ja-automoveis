@@ -4,7 +4,12 @@ import { pathToFileURL } from 'node:url';
 import { ROOT, STATIC_ROUTES, fetchSeoData, slugify } from './lib.mjs';
 
 const DIST = path.join(ROOT, 'dist');
-const template = fs.readFileSync(path.join(DIST, 'index.html'), 'utf-8');
+
+// Placeholders %VITE_*% que o Vite não substituiu (variável não definida)
+// são removidos com a respetiva tag, para não publicar marcadores literais.
+const template = fs
+  .readFileSync(path.join(DIST, 'index.html'), 'utf-8')
+  .replace(/\s*<meta\b[^>]*content="%VITE_[A-Z0-9_]+%"[^>]*>/gi, '');
 // pathToFileURL é obrigatório no Windows: o loader ESM rejeita caminhos "F:\...".
 const { render } = await import(pathToFileURL(path.join(DIST, 'server', 'entry-server.js')).href);
 
