@@ -69,7 +69,13 @@ for (const route of routes) {
     const { head: hoisted, html } = hoistHead(rendered.html);
     const head = [rendered.head, hoisted].filter(Boolean).join('\n    ');
 
-    const page = template
+    // Com head próprio, as tags de fallback do template são redundantes:
+    // removemo-las para não duplicar <title>/<meta name="description">.
+    const base = head
+      ? template.replace(/\s*<(?:title|meta|link)\b[^>]*\bdata-fallback-head\b[^>]*>(?:[\s\S]*?<\/title>)?/gi, '')
+      : template;
+
+    const page = base
       .replace('<!--app-head-->', head)
       .replace('<!--app-html-->', html)
       .replace(

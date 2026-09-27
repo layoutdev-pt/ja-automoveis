@@ -5,11 +5,22 @@
     <link rel="icon" type="image/png" href="/logo_round.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <title>JA Automóveis</title>
+
+    <!--
+      Fallback: só é usado em páginas NÃO pré-renderizadas (ex.: uma viatura
+      adicionada depois do build, servida por stand-fallback.html). Nas páginas
+      pré-renderizadas, o passo de build remove estas tags e injeta as reais,
+      específicas de cada rota, no lugar de <!--app-head-->.
+    -->
+    <title data-ssr-head data-fallback-head>JA Automóveis</title>
     <meta
+      data-ssr-head
+      data-fallback-head
       name="description"
       content="O seu parceiro de confiança na escolha do seu próximo carro. Viaturas usadas e seminovas com procedência garantida e apoio especializado."
     />
+
+    <!--app-head-->
   </head>
   <body>
     <div id="root"><!--app-html--></div>

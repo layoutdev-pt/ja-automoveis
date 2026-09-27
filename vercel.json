@@ -7,6 +7,36 @@
       "source": "/index.html",
       "destination": "/",
       "permanent": true
+    },
+    {
+      "source": "/home",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/inicio",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/contacto",
+      "destination": "/contactos",
+      "permanent": true
+    },
+    {
+      "source": "/sobre-nos",
+      "destination": "/sobre",
+      "permanent": true
+    },
+    {
+      "source": "/viaturas",
+      "destination": "/stand",
+      "permanent": true
+    },
+    {
+      "source": "/carros",
+      "destination": "/stand",
+      "permanent": true
     }
   ],
   "rewrites": [
