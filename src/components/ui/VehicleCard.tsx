@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { CalendarDays, Gauge, Fuel, Settings2 } from 'lucide-react';
 import type { Vehicle } from '../../types';
+import { WARRANTY_LABEL } from '../../seo/siteConfig';
 
 interface VehicleCardProps {
   vehicle: Vehicle;
@@ -102,7 +103,7 @@ export function VehicleCard({ vehicle }: VehicleCardProps) {
       <div className="mt-auto flex flex-col justify-end">
         <div className="border-t border-gray-100 dark:border-gray-800/60 pt-4 mb-4 transition-colors duration-500">
           <p className="text-xs font-medium text-gray-500 dark:text-gray-400">
-            Garantia: <span className="text-teal-600 dark:text-teal-400">{(vehicle as any).garantia || 'Sob Consulta'}</span>
+            Garantia: <span className="text-teal-600 dark:text-teal-400">{(vehicle as any).garantia || WARRANTY_LABEL}</span>
           </p>
         </div>
 

@@ -6,6 +6,7 @@ import type { Vehicle } from '../../types';
 // ================= IMPORTAÇÃO DO CROPPER (HARDWARE ACCELERATED) =================
 import Cropper from 'react-cropper';
 import 'cropperjs/dist/cropper.css';
+import { WARRANTY_MONTHS, WARRANTY_LABEL } from '../../seo/siteConfig';
 
 interface VehicleFormProps {
   onCancel: () => void;
@@ -202,7 +203,7 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
   const cropperRef = useRef<any>(null);
   const [cropImage, setCropImage] = useState<{ src: string; targetIndex: number } | null>(null);
 
-  const textoPadrao = `Viatura nacional em excelente estado de conservação.\n\n- Histórico completo de manutenção na marca;\n- Garantia de 18 meses por mútuo acordo;\n- Financiamento até 120 meses sem entrada inicial;\n- Aceitamos retomas mediante avaliação.\n\nA informação disponibilizada, ainda que precisa, não dispensa a sua confirmação, nem poderá ser considerada vinculativa.`;
+  const textoPadrao = `Viatura nacional em excelente estado de conservação.\n\n- Histórico completo de manutenção na marca;\n- Garantia de ${WARRANTY_MONTHS} meses por mútuo acordo;\n- Financiamento até 120 meses sem entrada inicial;\n- Aceitamos retomas mediante avaliação.\n\nA informação disponibilizada, ainda que precisa, não dispensa a sua confirmação, nem poderá ser considerada vinculativa.`;
   const handleColarTexto = () => setDescricao(textoPadrao);
 
   // ================= HANDLERS E DRAG & DROP =================
@@ -494,7 +495,7 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
             </div>
             <div>
               <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">Garantia</label>
-              <input type="text" value={garantia} onChange={e => setGarantia(e.target.value)} placeholder="Ex: 18 meses" className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-ja-blue/20 outline-none bg-white dark:bg-gray-800 text-ja-dark dark:text-white" />
+              <input type="text" value={garantia} onChange={e => setGarantia(e.target.value)} placeholder={`Ex: ${WARRANTY_LABEL}`} className="w-full px-4 py-3 rounded-xl border border-gray-200 dark:border-gray-700 focus:ring-2 focus:ring-ja-blue/20 outline-none bg-white dark:bg-gray-800 text-ja-dark dark:text-white" />
             </div>
           </div>
 

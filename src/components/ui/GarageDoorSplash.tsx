@@ -44,12 +44,48 @@ export function GarageDoorSplash({
   // 'fadeOut'   -> logo transita 1 -> 0
   // 'splitting' -> portas abrem para cima e para baixo
   // 'finished'  -> tudo terminado, scroll restaurado, componente removido
+  const SESSION_KEY = "ja_splash_played";
+
+  /** Só deve tocar uma vez por sessão — e nunca em SSR/pré-renderização. */
+  const shouldPlay = () => {
+    if (typeof window === "undefined") return false;
+    if (forcePlay) return true;
+    try {
+      return window.sessionStorage.getItem(SESSION_KEY) !== "1";
+    } catch {
+      return false;
+    }
+  };
+
+  // A primeira renderização do cliente tem de ser idêntica ao HTML
+  // pré-renderizado (que nunca contém o splash), caso contrário a hidratação
+  // falha com o erro React #418. Por isso arrancamos sempre vazio e só
+  // ativamos a animação depois da montagem.
   const [phase, setPhase] = useState<
     "initial" | "fadeIn" | "visible" | "fadeOut" | "splitting" | "finished"
-  >("initial");
-  const [isRendered, setIsRendered] = useState(true);
+  >("finished");
+  const [isRendered, setIsRendered] = useState(false);
 
   useEffect(() => {
+    // Já tocou nesta sessão (ou estamos em SSR): não bloqueia nada nem anima.
+    if (!shouldPlay()) {
+      return;
+    }
+
+    // Só agora, depois da hidratação, o splash entra em cena. O arranque é
+    // agendado para fora do ciclo síncrono do efeito, evitando o encadeamento
+    // de renderizações que o React sinaliza.
+    const start = window.setTimeout(() => {
+      setIsRendered(true);
+      setPhase("initial");
+    }, 0);
+
+    try {
+      window.sessionStorage.setItem(SESSION_KEY, "1");
+    } catch {
+      /* sessionStorage indisponível (modo privado): a animação corre à mesma */
+    }
+
     // Bloquear estritamente o scroll da página durante a animação
     const originalBodyOverflow = document.body.style.overflow;
     const originalHtmlOverflow = document.documentElement.style.overflow;
@@ -100,6 +136,7 @@ export function GarageDoorSplash({
     window.addEventListener("keydown", handleKeyDown);
 
     return () => {
+      clearTimeout(start);
       clearTimeout(t1);
       clearTimeout(t2);
       clearTimeout(t3);

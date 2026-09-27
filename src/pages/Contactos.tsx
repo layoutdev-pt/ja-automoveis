@@ -3,6 +3,8 @@ import { useLocation } from 'react-router-dom';
 import { MapPin, Phone, Mail, Clock, Send, ChevronDown } from 'lucide-react';
 import { WhatsAppIcon } from '../components/ui/WhatsAppIcon';
 import { ScrollReveal } from '../components/ui/ScrollReveal'; // Importação do motor de animação
+import { Seo } from '../seo/Seo';
+import { breadcrumbSchema, localBusinessSchema } from '../seo/schema';
 
 // ================= COMPONENTE CUSTOMIZADO PARA O DROPDOWN =================
 function CustomSelect({
@@ -27,6 +29,13 @@ function CustomSelect({
 
   return (
     <div className="relative" ref={dropdownRef}>
+      <Seo
+        title="Contactos e Morada | JA Automóveis, Covilhã"
+        description="Visite a JA Automóveis na Av. Cidade do Rio de Janeiro, Covilhã (6200-563). Telefone +351 961 650 396, email e horário de funcionamento."
+        path="/contactos"
+        jsonLd={[localBusinessSchema(), breadcrumbSchema([{ name: 'Início', path: '/' }, { name: 'Contactos', path: '/contactos' }])]}
+      />
+
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}

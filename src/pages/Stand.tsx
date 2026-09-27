@@ -1,10 +1,15 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Search, SlidersHorizontal, Loader2, ChevronDown, RotateCcw } from 'lucide-react';
-import { useLocation } from 'react-router-dom';
+import { useSearchParams, useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 import { VehicleCard } from '../components/ui/VehicleCard';
 import { ScrollReveal } from '../components/ui/ScrollReveal';
 import type { Vehicle } from '../types';
+import { Seo } from '../seo/Seo';
+import { breadcrumbSchema, itemListSchema, localBusinessSchema } from '../seo/schema';
+import { slugify } from '../lib/slug';
+import { WARRANTY_MONTHS } from '../seo/siteConfig';
+import { ssrData } from '../lib/ssrData';
 
 // ================= COMPONENTE CUSTOMIZADO PARA OS DROPDOWNS =================
 function FilterDropdown({ 
@@ -102,18 +107,23 @@ const MIN_PRICE = 0;
 const MAX_PRICE = 100000;
 
 export function Stand() {
-  const location = useLocation();
-  const [vehicles, setVehicles] = useState<Vehicle[]>([]);
+  // Os filtros vivem no URL: /stand?marca=BMW&combustivel=Diesel
+  // e /stand/marca/bmw (rota canónica por marca).
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { marca: marcaSlug } = useParams<{ marca?: string }>();
+
+  const initialVehicles = (ssrData<{ vehicles?: Vehicle[] }>()?.vehicles) || [];
+  const [vehicles, setVehicles] = useState<Vehicle[]>(initialVehicles);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const [page, setPage] = useState(0);
 
-  const [marcaFilter, setMarcaFilter] = useState(location.state?.marca || location.state?.searchQuery || '');
-  const [modeloFilter, setModeloFilter] = useState(location.state?.modelo || '');
-  const [transmissaoFilter, setTransmissaoFilter] = useState(location.state?.transmissao || '');
-  const [combustivelFilter, setCombustivelFilter] = useState(location.state?.combustivel || '');
-  const [segmentoFilter, setSegmentoFilter] = useState('');
+  const [marcaFilter, setMarcaFilter] = useState(searchParams.get('marca') || '');
+  const [modeloFilter, setModeloFilter] = useState(searchParams.get('modelo') || '');
+  const [transmissaoFilter, setTransmissaoFilter] = useState(searchParams.get('transmissao') || '');
+  const [combustivelFilter, setCombustivelFilter] = useState(searchParams.get('combustivel') || '');
+  const [segmentoFilter, setSegmentoFilter] = useState(searchParams.get('segmento') || '');
   
   const [anoDesde, setAnoDesde] = useState('');
   const [anoAte, setAnoAte] = useState('');
@@ -130,11 +140,31 @@ export function Stand() {
     async function loadMarcas() {
       try {
         const { data } = await supabase.from('marcas').select('nome').order('nome');
-        if (data) setMarcasAtivas(data.map(m => m.nome));
+        if (data) {
+          const nomes = data.map(m => m.nome);
+          setMarcasAtivas(nomes);
+          // /stand/marca/<slug> -> nome real da marca
+          if (marcaSlug) {
+            const match = nomes.find(n => slugify(n) === marcaSlug);
+            if (match) setMarcaFilter(match);
+          }
+        }
       } catch (error) {}
     }
     loadMarcas();
-  }, []);
+  }, [marcaSlug]);
+
+  // Espelha o estado dos filtros no URL (sem criar entradas no histórico).
+  useEffect(() => {
+    if (marcaSlug) return; // a rota por marca já é canónica
+    const next: Record<string, string> = {};
+    if (marcaFilter) next.marca = marcaFilter;
+    if (modeloFilter) next.modelo = modeloFilter;
+    if (combustivelFilter) next.combustivel = combustivelFilter;
+    if (transmissaoFilter) next.transmissao = transmissaoFilter;
+    if (segmentoFilter) next.segmento = segmentoFilter;
+    setSearchParams(next, { replace: true });
+  }, [marcaFilter, modeloFilter, combustivelFilter, transmissaoFilter, segmentoFilter, marcaSlug, setSearchParams]);
 
   useEffect(() => {
     async function loadModelos() {
@@ -233,9 +263,62 @@ export function Stand() {
     return new Intl.NumberFormat('pt-PT', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(val);
   };
 
+  // ================= SEO DINÂMICO =================
+  // Na rota /stand/marca/<slug> a marca tem de ser conhecida já na primeira
+  // renderização (a resolução via Supabase não corre durante a pré-renderização).
+  const marcaFromSlug = marcaSlug
+    ? initialVehicles.find(v => slugify(v.marca) === marcaSlug)?.marca
+      ?? marcaSlug.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+    : '';
+
+  const marcaAtiva = marcaFilter || marcaFromSlug;
+
+  const filtroLabel = [marcaAtiva, modeloFilter, combustivelFilter, transmissaoFilter]
+    .filter(Boolean).join(' ');
+
+  const seoTitle = filtroLabel
+    ? `${filtroLabel} usados na Covilhã | JA Automóveis`
+    : 'Stand de Carros Usados e Semi-Novos na Covilhã | JA Automóveis';
+
+  const seoDescription = filtroLabel
+    ? `Viaturas ${filtroLabel} usadas e semi-novas em stock na JA Automóveis, na Covilhã. Garantia de ${WARRANTY_MONTHS} meses, financiamento e retoma.`
+    : `Veja todas as viaturas usadas e semi-novas em stock na JA Automóveis, na Covilhã. Garantia de ${WARRANTY_MONTHS} meses, financiamento até 120 meses e retoma avaliada.`;
+
+  const seoPath = marcaSlug
+    ? `/stand/marca/${marcaSlug}`
+    : filtroLabel
+      ? `/stand?${new URLSearchParams(
+          Object.entries({
+            marca: marcaFilter, modelo: modeloFilter,
+            combustivel: combustivelFilter, transmissao: transmissaoFilter,
+          }).filter(([, v]) => v) as [string, string][],
+        ).toString()}`
+      : '/stand';
+
+  // Combinações de filtros muito específicas não devem competir entre si no índice.
+  const tooManyFilters =
+    [marcaFilter, modeloFilter, combustivelFilter, transmissaoFilter, segmentoFilter]
+      .filter(Boolean).length > 1;
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-[#0a0a0a] pt-24 pb-12 transition-colors duration-500">
-      
+
+      <Seo
+        title={seoTitle}
+        description={seoDescription}
+        path={seoPath}
+        noindex={tooManyFilters && !marcaSlug}
+        jsonLd={[
+          localBusinessSchema(),
+          breadcrumbSchema([
+            { name: 'Início', path: '/' },
+            { name: 'Stand', path: '/stand' },
+            ...(marcaAtiva ? [{ name: marcaAtiva, path: seoPath }] : []),
+          ]),
+          ...(vehicles.length ? [itemListSchema(vehicles)] : []),
+        ]}
+      />
+
       <style>{`
         .range-slider { position: relative; width: 100%; height: 6px; border-radius: 4px; background: #e5e7eb; }
         .range-slider .progress { position: absolute; height: 100%; border-radius: 4px; background: #004aad; }
@@ -253,7 +336,7 @@ export function Stand() {
         <ScrollReveal>
           <div className="mb-8 pt-20">
             <h1 className="text-3xl font-bold text-ja-dark dark:text-white tracking-tight transition-colors duration-500">
-              Todo o Inventário
+              {filtroLabel ? `${filtroLabel} usados na Covilhã` : 'Todo o Inventário'}
             </h1>
             <p className="text-gray-500 dark:text-gray-400 mt-2 transition-colors duration-500">
               Explore a nossa vasta gama de veículos de qualidade.

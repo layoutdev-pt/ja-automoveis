@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import './index.css'
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { Header } from './components/layout/Header';
@@ -19,27 +19,44 @@ import { Sobre } from './pages/Sobre';
 import { PrivacyPolicy } from './pages/PrivacyPolicy';
 import { TermsConditions } from './pages/TermsConditions';
 import { CookiesPolicy } from './pages/CookiesPolicy'; // Importação da nova página
+import { NotFound } from './pages/NotFound';
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
+
+  // A espera pela sessão fica confinada à área protegida.
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 text-ja-dark">
+        A carregar...
+      </div>
+    );
+  }
+
   if (!user) {
     return <Navigate to="/login" replace />;
   }
   return <>{children}</>;
 };
 
-function AppRoutes() {
+/**
+ * Estrutura da aplicação SEM Router.
+ * O Router é fornecido por fora: BrowserRouter no cliente (main.tsx)
+ * e StaticRouter na pré-renderização (entry-server.tsx).
+ */
+function AppShell() {
   return (
-    <Router>
+    <>
       <GarageDoorSplash />
       <ScrollToTop />
       <div className="flex flex-col min-h-screen bg-gray-50">
         <Header />
-        
+
         <main className="flex-grow">
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/stand" element={<Stand />} />
+            <Route path="/stand/marca/:marca" element={<Stand />} />
             <Route path="/stand/:id" element={<VehicleDetails />} />
             <Route path="/login" element={<Login />} />
             <Route path="/importacao" element={<Importacao />} />
@@ -50,15 +67,17 @@ function AppRoutes() {
             <Route path="/cookies" element={<CookiesPolicy />} /> {/* Nova Rota */}
 
             {/* A Rota Protegida */}
-            <Route 
-              path="/admin" 
+            <Route
+              path="/admin"
               element={
                 <ProtectedRoute>
                   <Admin />
                 </ProtectedRoute>
-              } 
+              }
             />
 
+            {/* 404 real: qualquer rota inexistente */}
+            <Route path="*" element={<NotFound />} />
           </Routes>
         </main>
 
@@ -66,7 +85,7 @@ function AppRoutes() {
         <Footer />
         <CookieConsent /> {/* Banner inserido globalmente */}
       </div>
-    </Router>
+    </>
   );
 }
 
@@ -74,7 +93,7 @@ function AppRoutes() {
 export default function App() {
   return (
     <AuthProvider>
-      <AppRoutes />
+      <AppShell />
     </AuthProvider>
   );
 }

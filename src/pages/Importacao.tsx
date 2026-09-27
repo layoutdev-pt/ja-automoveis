@@ -1,42 +1,51 @@
 import { Search, ShieldCheck, FileText, Truck, ArrowRight, CheckCircle2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { ScrollReveal } from '../components/ui/ScrollReveal'; // Importação do motor de animação
+import { Seo } from '../seo/Seo';
+import { breadcrumbSchema, howToSchema, localBusinessSchema } from '../seo/schema';
+import { WARRANTY_MONTHS } from '../seo/siteConfig';
+import { IMPORT_STEPS } from '../data/importSteps';
+
+
+const STEP_ICONS = [
+  <Search size={32} className="text-ja-blue" />,
+  <ShieldCheck size={32} className="text-ja-blue" />,
+  <FileText size={32} className="text-ja-blue" />,
+  <Truck size={32} className="text-ja-blue" />,
+];
 
 export function Importacao() {
-  const steps = [
-    {
-      icon: <Search size={32} className="text-ja-blue" />,
-      title: '1. Pesquisa à Medida',
-      description: 'Diga-nos exatamente o que procura. Marca, modelo, ano, equipamento e orçamento. A nossa equipa vasculha o mercado europeu (maioritariamente Alemanha e Países Baixos) para encontrar a viatura ideal.'
-    },
-    {
-      icon: <ShieldCheck size={32} className="text-ja-blue" />,
-      title: '2. Inspeção e Histórico',
-      description: 'Antes de qualquer compromisso, verificamos o histórico de manutenções, a ausência de acidentes e confirmamos a quilometragem real. Só avançamos com viaturas irrepreensíveis.'
-    },
-    {
-      icon: <FileText size={32} className="text-ja-blue" />,
-      title: '3. Legalização e Burocracia',
-      description: 'Tratamos de todo o processo burocrático: ISV, inspeção B, atribuição de matrícula portuguesa e registo automóvel. Não tem de se preocupar com filas ou papelada.'
-    },
-    {
-      icon: <Truck size={32} className="text-ja-blue" />,
-      title: '4. Entrega Chave na Mão',
-      description: 'A viatura é transportada em segurança, sujeita a uma revisão completa e detalhe automóvel antes de lhe ser entregue, pronta a circular com total tranquilidade.'
-    }
-  ];
+  const steps = IMPORT_STEPS.map((s, i) => ({ ...s, icon: STEP_ICONS[i] }));
 
   const guarantees = [
     'Quilometragem 100% real e comprovada',
     'Histórico de manutenção completo na marca',
     'Garantia de ausência de danos estruturais',
     'Processo chave na mão (legalização incluída)',
-    'Garantia por mútuo acordo de 18 meses',
+    `Garantia por mútuo acordo de ${WARRANTY_MONTHS} meses`,
     'Acompanhamento e transparência em cada fase'
   ];
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-[#0a0a0a] pt-42 pb-20 transition-colors duration-500">
+
+      <Seo
+        title="Importação de Carros da Europa Chave na Mão | JA Automóveis"
+        description={`Importamos o seu carro da Alemanha e Países Baixos: pesquisa à medida, inspeção, ISV, legalização e matrícula portuguesa. Garantia de ${WARRANTY_MONTHS} meses e transparência total nos custos.`}
+        path="/importacao"
+        jsonLd={[
+          howToSchema(
+            'Como importar um carro da Europa com a JA Automóveis',
+            'Processo chave na mão de importação automóvel: pesquisa, inspeção, legalização e entrega com matrícula portuguesa.',
+            IMPORT_STEPS,
+          ),
+          breadcrumbSchema([
+            { name: 'Início', path: '/' },
+            { name: 'Importação', path: '/importacao' },
+          ]),
+          localBusinessSchema(),
+        ]}
+      />
       
       {/* Hero Section */}
       <ScrollReveal>
@@ -63,6 +72,7 @@ export function Importacao() {
               {steps.map((step, index) => (
                 <div 
                   key={index} 
+                  id={`passo-${index + 1}`}
                   className="bg-gray-50 dark:bg-gray-900/50 p-8 rounded-2xl border border-gray-100 dark:border-gray-800 hover:-translate-y-2 hover:shadow-xl dark:hover:shadow-2xl dark:hover:border-gray-700 transition-all duration-300 relative mt-4 group"
                 >
                   <div className="absolute -top-6 left-8 bg-white dark:bg-gray-800 p-3 rounded-2xl shadow-sm border border-gray-100 dark:border-gray-700 group-hover:scale-110 transition-transform duration-300">

@@ -5,6 +5,7 @@ import type { User, Session } from '@supabase/supabase-js';
 type AuthContextType = {
   session: Session | null;
   user: User | null;
+  loading: boolean;
   signOut: () => void;
 };
 
@@ -33,17 +34,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => subscription.unsubscribe();
   }, []);
 
-  const signOut = async () => {
-    await supabase.auth.signOut();
-  };
-
-  // Não renderizamos a aplicação enquanto o Supabase não confirmar o estado da sessão
-  if (loading) {
-    return <div className="min-h-screen flex items-center justify-center bg-gray-50 text-ja-dark">A carregar...</div>;
-  }
-
+  // O site público renderiza de imediato (essencial para pré-renderização, LCP e
+  // para que os crawlers recebam conteúdo em vez de um ecrã "A carregar...").
+  // A espera pela sessão passa a ser responsabilidade exclusiva das rotas protegidas.
   return (
-    <AuthContext.Provider value={{ session, user, signOut }}>
+    <AuthContext.Provider value={{ session, user, loading, signOut: () => { void supabase.auth.signOut(); } }}>
       {children}
     </AuthContext.Provider>
   );

@@ -6,6 +6,8 @@ export interface Vehicle {
   ano: number;
   
   estado?: string;
+  garantia?: string;
+  mes?: string;
   combustivel?: string;
   transmissao?: string;
   segmento?: string;

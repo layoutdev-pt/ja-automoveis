@@ -7,11 +7,17 @@ import {
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import type { Vehicle } from '../types';
+import { Seo } from '../seo/Seo';
+import { breadcrumbSchema, localBusinessSchema, vehicleSchema } from '../seo/schema';
+import { ssrData } from '../lib/ssrData';
 
 export function VehicleDetails() {
   const { id } = useParams<{ id: string }>();
-  const [vehicle, setVehicle] = useState<Vehicle | null>(null);
-  const [loading, setLoading] = useState(true);
+  const prerendered = ssrData<{ vehicle?: Vehicle }>()?.vehicle;
+  const [vehicle, setVehicle] = useState<Vehicle | null>(
+    prerendered && prerendered.id === id ? prerendered : null,
+  );
+  const [loading, setLoading] = useState(!(prerendered && prerendered.id === id));
   
   const [currentSlide, setCurrentSlide] = useState(0);
   const [thumbStart, setThumbStart] = useState(0);
@@ -43,7 +49,20 @@ export function VehicleDetails() {
   }, [currentSlide]);
 
   if (loading) return <div className="min-h-screen flex items-center justify-center pt-20"><Loader2 size={40} className="text-ja-blue animate-spin" /></div>;
-  if (!vehicle) return <div className="min-h-screen flex flex-col items-center justify-center pt-20"><h2 className="text-2xl font-bold">Viatura não encontrada</h2><Link to="/stand" className="text-ja-blue mt-4">Voltar ao Inventário</Link></div>;
+  if (!vehicle) return (
+    <>
+      <Seo
+        title="Viatura não encontrada | JA Automóveis"
+        description="Esta viatura já não se encontra disponível. Veja o stock atual da JA Automóveis na Covilhã."
+        path={`/stand/${id ?? ''}`}
+        noindex
+      />
+      <div className="min-h-screen flex flex-col items-center justify-center pt-20">
+        <h1 className="text-2xl font-bold">Viatura não encontrada</h1>
+        <Link to="/stand" className="text-ja-blue mt-4">Voltar ao Inventário</Link>
+      </div>
+    </>
+  );
 
   const formatPrice = (price: number) => new Intl.NumberFormat('pt-PT', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(price);
   const formatNumber = (num: number) => new Intl.NumberFormat('pt-PT').format(num);
@@ -58,6 +77,10 @@ export function VehicleDetails() {
   const destaqueBottom = galeria.length > 2 ? galeria[2] : fotoPerfil; 
 
   const isVideoUrl = (url: string) => typeof url === 'string' && /\.(mp4|webm|ogg|mov|m4v)$/i.test(url);
+
+  // Base descritiva para o texto alternativo de todas as imagens da viatura.
+  const altBase = [vehicle.marca, vehicle.modelo, vehicle.versao, vehicle.ano]
+    .filter(Boolean).join(' ');
 
   const togglePlay = (e?: React.MouseEvent) => {
     e?.preventDefault();
@@ -121,8 +144,38 @@ export function VehicleDetails() {
     return section.data.split(',').map(i => i.trim()).filter(i => i.length > 0).length > 0;
   });
 
+  const precoFmt = new Intl.NumberFormat('pt-PT').format(vehicle.preco);
+  const seoTitle = `${altBase} — ${precoFmt} € | JA Automóveis Covilhã`;
+  const seoDescription = [
+    `${altBase} à venda na JA Automóveis, na Covilhã, por ${precoFmt} €.`,
+    vehicle.quilometros !== undefined ? `${formatNumber(vehicle.quilometros)} km.` : '',
+    vehicle.combustivel || '',
+    vehicle.transmissao || '',
+    vehicle.em_stock ? 'Disponível em stock.' : 'Viatura vendida.',
+  ].filter(Boolean).join(' ').slice(0, 300);
+
   return (
     <div className="min-h-screen bg-white dark:bg-[#0a0a0a] pt-42 pb-20 transition-colors duration-500">
+
+      <Seo
+        title={seoTitle}
+        description={seoDescription}
+        path={`/stand/${vehicle.id}`}
+        type="product"
+        image={galeria.find(f => !isVideoUrl(f))}
+        // Viaturas já vendidas saem do índice, mas continuam acessíveis por link.
+        noindex={!vehicle.em_stock}
+        jsonLd={[
+          vehicleSchema(vehicle),
+          breadcrumbSchema([
+            { name: 'Início', path: '/' },
+            { name: 'Stand', path: '/stand' },
+            { name: altBase, path: `/stand/${vehicle.id}` },
+          ]),
+          localBusinessSchema(),
+        ]}
+      />
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         <Link to="/stand" className="inline-flex items-center text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-ja-dark dark:hover:text-white mb-8 transition-colors duration-500">
@@ -162,7 +215,7 @@ export function VehicleDetails() {
             ) : (
               <img 
                 src={galeria[currentSlide]} 
-                alt="galeria" 
+                alt={`${altBase} — fotografia ${currentSlide + 1} de ${galeria.length}`}
                 className="absolute inset-0 w-full h-full object-cover transition-transform duration-700" 
               />
             )}
@@ -192,7 +245,7 @@ export function VehicleDetails() {
                             </div>
                           </>
                         ) : (
-                          <img src={galeria[idx]} className="w-full h-full object-cover" />
+                          <img src={galeria[idx]} alt={`${altBase} — miniatura ${idx + 1}`} className="w-full h-full object-cover" />
                         )}
                       </button>
                     );
@@ -208,14 +261,14 @@ export function VehicleDetails() {
               {isVideoUrl(destaqueTop) ? (
                 <video src={destaqueTop} className="absolute inset-0 w-full h-full object-cover" muted playsInline autoPlay loop />
               ) : (
-                <img src={destaqueTop} className="absolute inset-0 w-full h-full object-cover" />
+                <img src={destaqueTop} alt={`${altBase} — vista adicional`} className="absolute inset-0 w-full h-full object-cover" />
               )}
             </div>
             <div className="flex-1 relative h-[120px] sm:h-[200px] lg:h-auto rounded-xl sm:rounded-2xl overflow-hidden bg-gray-100 dark:bg-gray-900 group">
                {isVideoUrl(destaqueBottom) ? (
                 <video src={destaqueBottom} className="absolute inset-0 w-full h-full object-cover" muted playsInline autoPlay loop />
               ) : (
-                <img src={destaqueBottom} className="absolute inset-0 w-full h-full object-cover" />
+                <img src={destaqueBottom} alt={`${altBase} — interior e detalhes`} className="absolute inset-0 w-full h-full object-cover" />
               )}
             </div>
           </div>

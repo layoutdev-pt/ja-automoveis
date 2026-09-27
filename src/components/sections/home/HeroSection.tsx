@@ -1,41 +1,92 @@
+import { useEffect, useRef, useState } from 'react';
 import { HomeFilterBar } from './HomeFilterBar'; // Importar o filtro
 
 export function HeroSection() {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [shouldLoadVideo, setShouldLoadVideo] = useState(false);
+
+  useEffect(() => {
+    // O vídeo (15 MB) só começa a carregar depois do primeiro paint e apenas
+    // quando o hero está efetivamente visível. Até lá mostra-se o poster (105 KB),
+    // que passa a ser o elemento LCP.
+    if (typeof window === 'undefined') return;
+
+    const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    const saveData = (navigator as Navigator & { connection?: { saveData?: boolean } })
+      .connection?.saveData;
+    if (reducedMotion || saveData) return;
+
+    const el = videoRef.current;
+    if (!el) return;
+
+    if (typeof IntersectionObserver === 'undefined') {
+      // Fora do ciclo síncrono do efeito, para não encadear renderizações.
+      const id = setTimeout(() => setShouldLoadVideo(true), 0);
+      return () => clearTimeout(id);
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some(e => e.isIntersecting)) {
+          setShouldLoadVideo(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: '200px' },
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (shouldLoadVideo) videoRef.current?.load();
+  }, [shouldLoadVideo]);
+
   return (
     // 1. Removido o 'overflow-hidden' daqui da <section> principal
     <section className="relative w-full flex flex-col bg-[#0a0a0a] mt-[116px] md:mt-[4px]">
-      
+
       {/* ================= VÍDEO E MÁSCARA ================= */}
       {/* 2. Mantemos o 'overflow-hidden' NESTE bloco apenas para segurar a sombra gigante da máscara */}
       <div className="relative w-full flex items-center justify-center overflow-hidden z-10">
-        
-        {/* Fundo com Vídeo */}
+
+        {/* Fundo com Vídeo — poster leve + carregamento diferido */}
         <video
+          ref={videoRef}
           autoPlay
           loop
           muted
           playsInline
+          preload="none"
+          poster="/imagens/hero-poster.jpg"
+          aria-label="Instalações da JA Automóveis na Covilhã"
           className="w-full h-auto block"
         >
-          <source 
-            src="videos/jr_stand_vid_compressed.mp4" 
-            type="video/mp4" 
-          />
+          {shouldLoadVideo && (
+            <source
+              src="/videos/jr_stand_vid_compressed.mp4"
+              type="video/mp4"
+            />
+          )}
         </video>
-        
+
         {/* MÁSCARA (Logótipo) - Mantida com a tua opacity-70 e tamanhos */}
         <div className="absolute inset-0 z-10 flex items-center justify-center pointer-events-none overflow-hidden opacity-70">
-          <img 
-            src="/ja_logo.svg" 
-            alt="JA Automóveis" 
-            className="w-64 md:w-80 lg:w-[450px] object-contain shadow-[0_0_0_9999px_black]" 
+          <img
+            src="/ja_logo.svg"
+            alt="JA Automóveis"
+            width={450}
+            height={140}
+            fetchPriority="high"
+            className="w-64 md:w-80 lg:w-[450px] object-contain shadow-[0_0_0_9999px_black]"
           />
         </div>
 
       </div>
 
       {/* ================= BARRA DE FILTROS FLUTUANTE TRANSPARENTE NO TOPO (Apenas PC) ================= */}
-      {/* 3. MÁGICA: Este bloco foi movido para FORA da div do vídeo! 
+      {/* 3. MÁGICA: Este bloco foi movido para FORA da div do vídeo!
            Como já não está preso no 'overflow-hidden', o menu cai por cima da página à vontade. */}
       <div className="hidden lg:block absolute top-0 left-0 w-full z-30 pt-6 md:pt-[860px] px-4 sm:px-6 lg:px-8 pointer-events-none">
         <div className="pointer-events-auto">

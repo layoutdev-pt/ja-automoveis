@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Shield, Loader2, Mail, Lock } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { Seo } from '../seo/Seo';
 
 export function Login() {
   const navigate = useNavigate();
@@ -36,6 +37,13 @@ export function Login() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <Seo
+        title="Área Reservada | JA Automóveis"
+        description="Acesso reservado à administração da JA Automóveis."
+        path="/login"
+        noindex
+      />
+
       <div className="bg-white max-w-md w-full rounded-3xl p-8 border border-gray-100 shadow-xl">
         
         <div className="flex flex-col items-center justify-center mb-8">

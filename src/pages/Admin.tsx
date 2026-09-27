@@ -4,6 +4,7 @@ import { LogOut, Plus, Edit, Trash2, Car, Loader2, Users, UserPlus } from 'lucid
 import { supabase } from '../lib/supabase';
 import type { Vehicle } from '../types';
 import { VehicleForm } from '../components/admin/VehicleForm';
+import { Seo } from '../seo/Seo';
 
 type AdminUser = { id: string; email: string; created_at: string; };
 
@@ -170,6 +171,13 @@ export function Admin() {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-[#0a0a0a] flex flex-col md:flex-row pt-20 transition-colors duration-500">
+      <Seo
+        title="Administração | JA Automóveis"
+        description="Painel de administração da JA Automóveis."
+        path="/admin"
+        noindex
+      />
+
       
       {/* SIDEBAR */}
       <aside className="w-full md:w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 flex flex-col pt-20 transition-colors duration-500">

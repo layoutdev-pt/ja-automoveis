@@ -1,10 +1,18 @@
 import { Link } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { ScrollReveal } from '../components/ui/ScrollReveal';
+import { Seo } from '../seo/Seo';
+import { WARRANTY_MONTHS } from '../seo/siteConfig';
 
 export function TermsConditions() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-[#0a0a0a] pt-42 pb-20 transition-colors duration-500">
+      <Seo
+        title="Termos e Condições de Utilização | JA Automóveis"
+        description="Termos e condições de utilização do site e das condições de venda e garantia das viaturas da JA Automóveis."
+        path="/termos-condicoes"
+      />
+
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         
         <Link to="/" className="inline-flex items-center text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-ja-blue dark:hover:text-blue-400 mb-8 transition-colors">
@@ -59,7 +67,7 @@ export function TermsConditions() {
                 <ul className="list-disc pl-6 space-y-2">
                   <li>Na JA Automóveis, destacamo-nos pela excelência, transparência e fiabilidade dos nossos serviços.</li>
                   <li>Ao escolher-nos, beneficia de uma cobertura que assegura a total tranquilidade necessária na compra do seu novo automóvel.</li>
-                  <li><strong>Períodos de Garantia Flexíveis:</strong> As nossas viaturas beneficiam de garantia automóvel cujo período poderá ser de 6, 12, 18 ou 24 meses.</li>
+                  <li><strong>Período de Garantia:</strong> As nossas viaturas beneficiam de garantia automóvel por mútuo acordo pelo período de {WARRANTY_MONTHS} meses, nos termos legalmente aplicáveis à venda de bens usados.</li>
                   <li>O prazo exato é definido casuisticamente e formalizado por mútuo acordo no momento da compra. Este prazo adapta-se às características específicas da viatura e à modalidade de negócio aplicável, assegurando sempre a sua máxima proteção.</li>
                   <li><strong>Cobertura Abrangente:</strong> Proteção eficaz contra falhas mecânicas e eletrónicas inesperadas.</li>
                   <li><strong>Gestão Própria de Reparações:</strong> Em caso de anomalia, nós tratamos de tudo. Asseguramos que todas as reparações abrangidas pela garantia são devidamente geridas pela nossa equipa e efetuadas por técnicos especializados com peças de qualidade.</li>

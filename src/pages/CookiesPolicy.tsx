@@ -1,10 +1,17 @@
 import { Link } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { ScrollReveal } from '../components/ui/ScrollReveal';
+import { Seo } from '../seo/Seo';
 
 export function CookiesPolicy() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-[#0a0a0a] pt-42 pb-20 transition-colors duration-500">
+      <Seo
+        title="Política de Cookies | JA Automóveis"
+        description="Que cookies o site da JA Automóveis utiliza, para que servem e como pode gerir as suas preferências."
+        path="/cookies"
+      />
+
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
         
         <Link to="/" className="inline-flex items-center text-sm font-medium text-gray-500 dark:text-gray-400 hover:text-ja-blue dark:hover:text-blue-400 mb-8 transition-colors">

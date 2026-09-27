@@ -1,5 +1,7 @@
 import { ShieldCheck, Star, Trophy } from 'lucide-react';
 import { ScrollReveal } from '../components/ui/ScrollReveal';
+import { Seo } from '../seo/Seo';
+import { breadcrumbSchema, localBusinessSchema } from '../seo/schema';
 
 export function Sobre() {
   // const teamMembers = [
@@ -11,6 +13,13 @@ export function Sobre() {
 
   return (
     <div className="min-h-screen bg-white dark:bg-[#0a0a0a] pt-44 pb-20 transition-colors duration-500 overflow-hidden">
+      <Seo
+        title="Sobre a JA Automóveis | Stand Multimarca na Covilhã"
+        description="Conheça a JA Automóveis: stand multimarca na Covilhã focado em transparência total, qualidade premium e acompanhamento antes, durante e após a venda."
+        path="/sobre"
+        jsonLd={[localBusinessSchema(), breadcrumbSchema([{ name: 'Início', path: '/' }, { name: 'Sobre nós', path: '/sobre' }])]}
+      />
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         <ScrollReveal>

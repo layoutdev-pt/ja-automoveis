@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, createSearchParams } from 'react-router-dom';
 import { Search, ChevronDown } from 'lucide-react';
 import { supabase } from '../../../lib/supabase';
+import { slugify } from '../../../lib/slug';
 
 const TRANSMISSOES = ['Automática', 'Manual'];
 const COMBUSTIVEIS = ['Diesel', 'Eléctrico', 'Gasolina', 'Híbrido (Gasolina)', 'Híbrido Plug-in Gasolina'];
@@ -90,8 +91,22 @@ export function HomeFilterBar() {
     loadModelos();
   }, [marca]);
 
+  // Os filtros passam a viver no URL (query string), tornando cada combinação
+  // uma página distinta, partilhável e indexável.
   const handleSearchClick = () => {
-    navigate('/stand', { state: { marca, modelo, combustivel, transmissao } });
+    const params = createSearchParams(
+      Object.entries({ marca, modelo, combustivel, transmissao })
+        .filter(([, v]) => v)
+        .reduce<Record<string, string>>((acc, [k, v]) => ({ ...acc, [k]: v }), {}),
+    ).toString();
+
+    // Apenas a marca selecionada => rota canónica /stand/marca/<marca>
+    if (marca && !modelo && !combustivel && !transmissao) {
+      navigate(`/stand/marca/${slugify(marca)}`);
+      return;
+    }
+
+    navigate(params ? `/stand?${params}` : '/stand');
   };
 
   return (
