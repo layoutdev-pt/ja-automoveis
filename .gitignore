@@ -24,3 +24,11 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Documentação
+*.pdf
+*.docx
+
+# AI
+.antigravity
+.claude
