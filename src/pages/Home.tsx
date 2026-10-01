@@ -27,18 +27,10 @@ export function Home() {
       {/* 1. Secção de Hero (video) - Sem ScrollReveal pois é o topo imediato da página */}
       <HeroSection />
 
-      {/* H1 da homepage: frase-chave clara e localizada.
-          Fica visualmente integrado por baixo do hero, antes dos destaques. */}
-      <section className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-2 text-center">
-        <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-ja-dark dark:text-white tracking-tight transition-colors duration-500">
-          Carros Usados e Semi-Novos na Covilhã
-        </h1>
-        <p className="mt-4 text-base md:text-lg text-gray-500 dark:text-gray-400 max-w-3xl mx-auto leading-relaxed transition-colors duration-500">
-          A JA Automóveis é um stand multimarca na Covilhã. Selecionamos cada viatura à mão e
-          entregamo-la com {WARRANTY_MONTHS} meses de garantia, financiamento à medida e
-          retoma do seu carro atual — com importação chave na mão sempre que o carro certo está lá fora.
-        </p>
-      </section>
+      {/* H1 semântico e acessível (sr-only) para manter a hierarquia de títulos e o SEO local no Google a 100% */}
+      <h1 className="sr-only">
+        Carros Usados e Semi-Novos na Covilhã — Stand JA Automóveis
+      </h1>
 
       <ScrollReveal>
         {/* 2 e 3. Secção de Filtros + Secção de Destaques

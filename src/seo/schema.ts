@@ -47,6 +47,8 @@ export const websiteSchema = () => ({
   '@id': `${SITE_URL}/#website`,
   url: SITE_URL,
   name: BUSINESS.name,
+  // O Google usa name/alternateName para o "nome do site" nos resultados.
+  alternateName: ['JA Automoveis', 'jaautomoveis.pt'],
   inLanguage: 'pt-PT',
   publisher: { '@id': ORG_ID },
   potentialAction: {

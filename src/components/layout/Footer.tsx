@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 export function Footer() {
   return (
     // Fundo, texto e borda superior adaptam-se ao tema
-    <footer className="bg-white dark:bg-[#0a0a0a] pt-20 pb-8 border-t border-gray-100 dark:border-gray-900 transition-colors duration-500">
+    <footer className="bg-white dark:bg-ja-dark pt-20 pb-8 border-t border-gray-100 dark:border-gray-900 transition-colors duration-500">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* Topo do Footer */}

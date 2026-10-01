@@ -52,7 +52,7 @@ function AppShell() {
       <div className="flex flex-col min-h-screen bg-gray-50">
         <Header />
 
-        <main className="flex-grow">
+        <main className="grow">
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/stand" element={<Stand />} />

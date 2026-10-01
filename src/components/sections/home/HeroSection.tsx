@@ -85,10 +85,9 @@ export function HeroSection() {
 
       </div>
 
-      {/* ================= BARRA DE FILTROS FLUTUANTE TRANSPARENTE NO TOPO (Apenas PC) ================= */}
-      {/* 3. MÁGICA: Este bloco foi movido para FORA da div do vídeo!
-           Como já não está preso no 'overflow-hidden', o menu cai por cima da página à vontade. */}
-      <div className="hidden lg:block absolute top-0 left-0 w-full z-30 pt-6 md:pt-[860px] px-4 sm:px-6 lg:px-8 pointer-events-none">
+      {/* ================= BARRA DE FILTROS FLUTUANTE SOBREPOSTA NO FUNDO DO VÍDEO (Apenas PC) ================= */}
+      {/* 3. Posicionamento dinâmico no fundo do vídeo (bottom-6 / lg:bottom-8) para qualquer resolução de ecrã */}
+      <div className="hidden lg:block absolute bottom-6 lg:bottom-8 left-0 w-full z-30 px-4 sm:px-6 lg:px-8 pointer-events-none">
         <div className="pointer-events-auto">
           <HomeFilterBar />
         </div>
