@@ -27,6 +27,8 @@ const routes = [
     data: { vehicles: inStock.filter(v => slugify(v.marca) === slugify(m)) },
   })),
   ...inStock.map(v => ({ url: `/stand/${v.id}`, data: { vehicle: v } })),
+  // Biosite: pré-renderizado, mas fora do sitemap (página de entrada das redes sociais).
+  { url: '/biosite', data: {} },
   { url: '/404', data: {}, out: '404.html' },
 ];
 

@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
+import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import './index.css'
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { Header } from './components/layout/Header';
@@ -20,6 +20,7 @@ import { PrivacyPolicy } from './pages/PrivacyPolicy';
 import { TermsConditions } from './pages/TermsConditions';
 import { CookiesPolicy } from './pages/CookiesPolicy'; // Importação da nova página
 import { NotFound } from './pages/NotFound';
+import { Bio } from './pages/Bio'; // Biosite (página de entrada para as redes sociais)
 
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
@@ -40,6 +41,28 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 };
 
 /**
+ * Layout do site principal (cabeçalho, rodapé, WhatsApp e abertura 1× por sessão).
+ * O biosite (/biosite) fica fora deste layout porque tem o seu próprio design.
+ */
+function MainLayout() {
+  return (
+    <>
+      <GarageDoorSplash />
+      <div className="flex flex-col min-h-screen bg-gray-50">
+        <Header />
+
+        <main className="grow">
+          <Outlet />
+        </main>
+
+        <WhatsAppButton />
+        <Footer />
+      </div>
+    </>
+  );
+}
+
+/**
  * Estrutura da aplicação SEM Router.
  * O Router é fornecido por fora: BrowserRouter no cliente (main.tsx)
  * e StaticRouter na pré-renderização (entry-server.tsx).
@@ -47,44 +70,39 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 function AppShell() {
   return (
     <>
-      <GarageDoorSplash />
       <ScrollToTop />
-      <div className="flex flex-col min-h-screen bg-gray-50">
-        <Header />
+      <Routes>
+        {/* Biosite: página independente, com a sua própria abertura (em cada carregamento) */}
+        <Route path="/biosite" element={<Bio />} />
 
-        <main className="grow">
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/stand" element={<Stand />} />
-            <Route path="/stand/marca/:marca" element={<Stand />} />
-            <Route path="/stand/:id" element={<VehicleDetails />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/importacao" element={<Importacao />} />
-            <Route path="/contactos" element={<Contactos />} />
-            <Route path="/sobre" element={<Sobre />} />
-            <Route path="/politica-privacidade" element={<PrivacyPolicy />} />
-            <Route path="/termos-condicoes" element={<TermsConditions />} />
-            <Route path="/cookies" element={<CookiesPolicy />} /> {/* Nova Rota */}
+        <Route element={<MainLayout />}>
+          <Route path="/" element={<Home />} />
+          <Route path="/stand" element={<Stand />} />
+          <Route path="/stand/marca/:marca" element={<Stand />} />
+          <Route path="/stand/:id" element={<VehicleDetails />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/importacao" element={<Importacao />} />
+          <Route path="/contactos" element={<Contactos />} />
+          <Route path="/sobre" element={<Sobre />} />
+          <Route path="/politica-privacidade" element={<PrivacyPolicy />} />
+          <Route path="/termos-condicoes" element={<TermsConditions />} />
+          <Route path="/cookies" element={<CookiesPolicy />} /> {/* Nova Rota */}
 
-            {/* A Rota Protegida */}
-            <Route
-              path="/admin"
-              element={
-                <ProtectedRoute>
-                  <Admin />
-                </ProtectedRoute>
-              }
-            />
+          {/* A Rota Protegida */}
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute>
+                <Admin />
+              </ProtectedRoute>
+            }
+          />
 
-            {/* 404 real: qualquer rota inexistente */}
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </main>
-
-        <WhatsAppButton />
-        <Footer />
-        <CookieConsent /> {/* Banner inserido globalmente */}
-      </div>
+          {/* 404 real: qualquer rota inexistente */}
+          <Route path="*" element={<NotFound />} />
+        </Route>
+      </Routes>
+      <CookieConsent /> {/* Banner inserido globalmente */}
     </>
   );
 }
