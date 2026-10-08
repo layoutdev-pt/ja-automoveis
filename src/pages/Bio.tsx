@@ -8,6 +8,7 @@ import { Highlights } from '../components/bio/Highlights';
 import { useAfter, useMounted, useOpenStatus, useReveal } from '../components/bio/hooks';
 import { Showcase } from '../components/bio/Showcase';
 import { TopBar } from '../components/bio/TopBar';
+import { Seo } from '../seo/Seo';
 import '../components/bio/bio.css';
 
 /**
@@ -31,20 +32,22 @@ export function Bio() {
     const previous = {
       html: html.style.backgroundColor,
       body: body.style.backgroundColor,
-      title: document.title,
     };
     html.style.backgroundColor = '#0a0a0a';
     body.style.backgroundColor = '#0a0a0a';
-    document.title = 'JA Automóveis — Covilhã';
     return () => {
       html.style.backgroundColor = previous.html;
       body.style.backgroundColor = previous.body;
-      document.title = previous.title;
     };
   }, []);
 
   return (
     <>
+      <Seo
+        title="JA Automóveis | Stand de Carros Usados na Covilhã"
+        description="Stand multimarca na Covilhã: viaturas usadas e semi-novas selecionadas, garantia, financiamento e retoma. Contacte a JA Automóveis por telefone ou WhatsApp."
+        path="/biosite"
+      />
       {/* A mesma abertura do site, mas em todos os carregamentos do biosite */}
       <GarageDoorSplash forcePlay />
 
