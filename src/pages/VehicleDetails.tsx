@@ -28,7 +28,7 @@ export function VehicleDetails() {
 
   // Estados para o controlo de Vídeo Moderno
   const videoRef = useRef<HTMLVideoElement>(null);
-  const [isPlaying, setIsPlaying] = useState(true);
+  const [isPlaying, setIsPlaying] = useState(false);
 
   useEffect(() => {
     async function fetchVehicle() {
@@ -47,7 +47,7 @@ export function VehicleDetails() {
   }, [id]);
 
   useEffect(() => {
-    setIsPlaying(true);
+    setIsPlaying(false);
   }, [currentSlide]);
 
   if (loading) return <div className="min-h-screen flex items-center justify-center pt-20"><Loader2 size={40} className="text-ja-blue animate-spin" /></div>;
@@ -193,8 +193,8 @@ export function VehicleDetails() {
                 <video 
                   ref={videoRef}
                   src={galeria[currentSlide]} 
-                  playsInline 
-                  autoPlay
+                  playsInline
+                  preload="metadata"
                   muted
                   loop
                   onClick={togglePlay}
@@ -241,13 +241,13 @@ export function VehicleDetails() {
                       >
                         {isVid ? (
                           <>
-                            <video src={galeria[idx]} className="w-full h-full object-cover" muted playsInline />
+                            <video src={galeria[idx]} className="w-full h-full object-cover" muted playsInline preload="metadata" />
                             <div className="absolute inset-0 flex items-center justify-center bg-black/30 pointer-events-none">
                               <Video size={16} className="text-white drop-shadow-md" />
                             </div>
                           </>
                         ) : (
-                          <img src={galeria[idx]} alt={`${altBase} — miniatura ${idx + 1}`} className="w-full h-full object-cover" />
+                          <img src={galeria[idx]} alt={`${altBase} — miniatura ${idx + 1}`} className="w-full h-full object-cover" loading="lazy" decoding="async" />
                         )}
                       </button>
                     );
@@ -261,14 +261,14 @@ export function VehicleDetails() {
           <div className="flex flex-row lg:flex-col gap-4 lg:h-[500px]">
             <div className="flex-1 relative h-[120px] sm:h-[200px] lg:h-auto rounded-xl sm:rounded-2xl overflow-hidden bg-gray-100 dark:bg-gray-900 group">
               {isVideoUrl(destaqueTop) ? (
-                <video src={destaqueTop} className="absolute inset-0 w-full h-full object-cover" muted playsInline autoPlay loop />
+                <video src={destaqueTop} className="absolute inset-0 w-full h-full object-cover" muted playsInline preload="metadata" />
               ) : (
                 <img src={destaqueTop} alt={`${altBase} — vista adicional`} className="absolute inset-0 w-full h-full object-cover" />
               )}
             </div>
             <div className="flex-1 relative h-[120px] sm:h-[200px] lg:h-auto rounded-xl sm:rounded-2xl overflow-hidden bg-gray-100 dark:bg-gray-900 group">
                {isVideoUrl(destaqueBottom) ? (
-                <video src={destaqueBottom} className="absolute inset-0 w-full h-full object-cover" muted playsInline autoPlay loop />
+                <video src={destaqueBottom} className="absolute inset-0 w-full h-full object-cover" muted playsInline preload="metadata" />
               ) : (
                 <img src={destaqueBottom} alt={`${altBase} — interior e detalhes`} className="absolute inset-0 w-full h-full object-cover" />
               )}

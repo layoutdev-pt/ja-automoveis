@@ -39,7 +39,7 @@ export const STATIC_ROUTES = [
 export async function fetchSeoData() {
   const env = loadEnv();
   const url = env.VITE_SUPABASE_URL;
-  const key = env.VITE_SUPABASE_ANON_KEY;
+  const key = env.VITE_SUPABASE_PUBLISHABLE_KEY || env.VITE_SUPABASE_ANON_KEY;
 
   if (!url || !key) {
     console.warn('[seo] Variáveis Supabase em falta — a continuar sem dados dinâmicos.');

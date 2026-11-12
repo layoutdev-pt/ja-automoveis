@@ -27,8 +27,10 @@ export function VehicleCard({ vehicle }: VehicleCardProps) {
       {/* Imagem do Veículo */}
       <div className="relative aspect-[4/3] rounded-xl overflow-hidden bg-gray-100 dark:bg-gray-800 mb-4 transition-colors duration-500 flex-shrink-0">
         <img 
-          src={vehicle.fotos[0]} 
-          alt={`${vehicle.marca} ${vehicle.modelo}`} 
+          src={vehicle.fotos[0]}
+          alt={`${vehicle.marca} ${vehicle.modelo}`}
+          loading="lazy"
+          decoding="async"
           // Se estiver vendido, a imagem fica ligeiramente cinzenta e não faz zoom ao passar o rato
           className={`w-full h-full object-cover transition-transform duration-700 ${vehicle.em_stock ? 'group-hover:scale-105' : 'grayscale-[40%]'}`}
         />

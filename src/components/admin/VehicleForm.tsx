@@ -9,6 +9,19 @@ import Cropper from 'react-cropper';
 import 'cropperjs/dist/cropper.css';
 import { WARRANTY_MONTHS, WARRANTY_LABEL } from '../../seo/siteConfig';
 
+/** Caminhos no bucket `vehicle_images` de todas as fotos/vídeos (crops + masters) de uma viatura. */
+const STORAGE_MARKER = '/storage/v1/object/public/vehicle_images/';
+const storagePathsOf = (
+  fotos: (string | null | undefined)[] = [],
+  fotosMeta: ({ masterUrl?: string } | null | undefined)[] = [],
+): string[] => {
+  const urls = [...fotos, ...(Array.isArray(fotosMeta) ? fotosMeta.map(m => m?.masterUrl) : [])];
+  const paths = urls
+    .filter((u): u is string => typeof u === 'string' && u.includes(STORAGE_MARKER))
+    .map(u => decodeURIComponent(u.split(STORAGE_MARKER)[1].split('?')[0]));
+  return [...new Set(paths)];
+};
+
 interface VehicleFormProps {
   onCancel: () => void;
   onSuccess: () => void;
@@ -299,18 +312,22 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
 
     setLoading(true); setError('');
 
+    // Ficheiros enviados nesta gravação: se a gravação falhar, são apagados para não ficarem órfãos.
+    const uploadedPaths: string[] = [];
+    const uploadToStorage = async (fileName: string, body: Blob, contentType: string) => {
+      const { error: uploadError } = await supabase.storage
+        .from('vehicle_images')
+        .upload(fileName, body, { contentType, cacheControl: '31536000' });
+      if (uploadError) throw uploadError;
+      uploadedPaths.push(fileName);
+      return supabase.storage.from('vehicle_images').getPublicUrl(fileName).data.publicUrl;
+    };
+
     try {
       const processImage = async (item: FormImage) => {
         let finalMasterUrl = item.masterUrl;
         let finalCropUrl = item.cropUrl;
 
-        const uploadToStorage = async (fileName: string, body: Blob, contentType: string) => {
-          const { error: uploadError } = await supabase.storage
-            .from('vehicle_images')
-            .upload(fileName, body, { contentType, cacheControl: '31536000' });
-          if (uploadError) throw uploadError;
-          return supabase.storage.from('vehicle_images').getPublicUrl(fileName).data.publicUrl;
-        };
         const randomId = () => `${Math.random().toString(36).substring(2, 15)}_${Date.now()}`;
 
         if (item.masterFile) {
@@ -354,14 +371,25 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
       if (initialData) {
         const { error: updateError } = await supabase.from('vehicles').update(vehicleData).eq('id', initialData.id);
         if (updateError) throw updateError;
-        // Garbage Collection Omitido por Brevidade
+
+        // Apaga do Storage as fotos que deixaram de ser usadas (substituídas, recortadas de novo ou removidas).
+        const oldPaths = storagePathsOf(initialData.fotos, initialFotosMeta);
+        const newPaths = new Set(storagePathsOf(fotosLimpas, fotosMeta));
+        const unused = oldPaths.filter(p => !newPaths.has(p));
+        if (unused.length > 0) {
+          const { error: removeError } = await supabase.storage.from('vehicle_images').remove(unused);
+          if (removeError) console.error('Erro ao apagar fotos antigas do Storage:', removeError);
+        }
       } else {
         const { error: insertError } = await supabase.from('vehicles').insert([vehicleData]);
         if (insertError) throw insertError;
       }
-      
+
       onSuccess();
     } catch (err: any) {
+      if (uploadedPaths.length > 0) {
+        await supabase.storage.from('vehicle_images').remove(uploadedPaths);
+      }
       console.error('Erro ao guardar veículo:', err);
       setError('Ocorreu um erro ao guardar o veículo.');
     } finally {

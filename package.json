@@ -12,7 +12,8 @@
     "build": "node scripts/generate-sitemap.mjs && tsc -b && vite build && vite build --ssr src/entry-server.tsx --outDir dist/server && node scripts/prerender.mjs",
     "lint": "eslint .",
     "preview": "vite preview",
-    "images:optimize": "node scripts/optimize-images.mjs"
+    "images:optimize": "node scripts/optimize-images.mjs",
+    "images:cleanup": "node scripts/cleanup-storage.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.106.2",

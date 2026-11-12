@@ -229,6 +229,7 @@ export function Header() {
                           <div className="w-12 h-8 sm:w-14 sm:h-10 flex-shrink-0 rounded-lg overflow-hidden bg-gray-200 dark:bg-gray-800">
                             <img 
                               src={vehicle.fotos[0]} 
+                              loading="lazy"
                               alt={vehicle.modelo} 
                               className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                             />
@@ -347,6 +348,7 @@ export function Header() {
                         <div className="w-12 h-8 sm:w-14 sm:h-10 flex-shrink-0 rounded-lg overflow-hidden bg-gray-200 dark:bg-gray-800">
                           <img 
                             src={vehicle.fotos[0]} 
+                            loading="lazy"
                             alt={vehicle.modelo} 
                             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                           />

@@ -11,7 +11,8 @@
  *                                            → idem, e apaga os ficheiros originais do bucket
  *
  * Requer no .env (nunca com prefixo VITE_, para não ir parar ao browser):
- *   SUPABASE_SERVICE_ROLE_KEY=...            (Supabase → Project Settings → API → service_role)
+ *   SUPABASE_SECRET_KEY=sb_secret_...        (Supabase → Project Settings → API Keys → Secret keys)
+ * A chave legacy service_role já não é usada.
  */
 import sharp from 'sharp';
 import { createClient } from '@supabase/supabase-js';
@@ -29,14 +30,18 @@ const DELETE_OLD = args.has('--delete-old');
 
 const env = loadEnv();
 const SUPABASE_URL = env.VITE_SUPABASE_URL;
-const SERVICE_KEY = env.SUPABASE_SERVICE_ROLE_KEY;
+const SECRET_KEY = env.SUPABASE_SECRET_KEY;
 
-if (!SUPABASE_URL || !SERVICE_KEY) {
-  console.error('Faltam VITE_SUPABASE_URL e/ou SUPABASE_SERVICE_ROLE_KEY no .env.');
+if (!SUPABASE_URL || !SECRET_KEY) {
+  console.error('Faltam VITE_SUPABASE_URL e/ou SUPABASE_SECRET_KEY no .env.');
+  process.exit(1);
+}
+if (!SECRET_KEY.startsWith('sb_secret_')) {
+  console.error('SUPABASE_SECRET_KEY deve ser uma chave nova (sb_secret_...), não a service_role legacy.');
   process.exit(1);
 }
 
-const supabase = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });
+const supabase = createClient(SUPABASE_URL, SECRET_KEY, { auth: { persistSession: false } });
 const PUBLIC_PREFIX = `${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/`;
 
 const kb = (bytes) => `${(bytes / 1024).toFixed(0)} KB`;
