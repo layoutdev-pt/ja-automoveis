@@ -5,19 +5,34 @@
   "redirects": [
     {
       "source": "/index.php/carros-covilha/:rest*",
-      "has": [{ "type": "host", "value": "(www\\.)?ja-automoveis\\.pt" }],
+      "has": [
+        {
+          "type": "host",
+          "value": "(www\\.)?ja-automoveis\\.pt"
+        }
+      ],
       "destination": "https://jaautomoveis.pt/stand",
       "permanent": true
     },
     {
       "source": "/index.php/:rest*",
-      "has": [{ "type": "host", "value": "(www\\.)?ja-automoveis\\.pt" }],
+      "has": [
+        {
+          "type": "host",
+          "value": "(www\\.)?ja-automoveis\\.pt"
+        }
+      ],
       "destination": "https://jaautomoveis.pt/",
       "permanent": true
     },
     {
       "source": "/:path*",
-      "has": [{ "type": "host", "value": "(www\\.)?ja-automoveis\\.pt" }],
+      "has": [
+        {
+          "type": "host",
+          "value": "(www\\.)?ja-automoveis\\.pt"
+        }
+      ],
       "destination": "https://jaautomoveis.pt/:path*",
       "permanent": true
     },
@@ -67,27 +82,72 @@
     {
       "source": "/robots.txt",
       "headers": [
-        { "key": "Content-Type", "value": "text/plain; charset=utf-8" },
-        { "key": "Cache-Control", "value": "public, max-age=3600" }
+        {
+          "key": "Content-Type",
+          "value": "text/plain; charset=utf-8"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=3600"
+        }
       ]
     },
     {
       "source": "/sitemap.xml",
       "headers": [
-        { "key": "Content-Type", "value": "application/xml; charset=utf-8" },
-        { "key": "Cache-Control", "value": "public, max-age=3600" }
+        {
+          "key": "Content-Type",
+          "value": "application/xml; charset=utf-8"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=3600"
+        }
+      ]
+    },
+    {
+      "source": "/imagens/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=2592000, stale-while-revalidate=86400"
+        }
+      ]
+    },
+    {
+      "source": "/bio/(.*)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=2592000, stale-while-revalidate=86400"
+        }
+      ]
+    },
+    {
+      "source": "/(.*)\\.(svg|png|ico|webp|jpg|jpeg|woff2)",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=2592000, stale-while-revalidate=86400"
+        }
       ]
     },
     {
       "source": "/assets/(.*)",
       "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
       ]
     },
     {
       "source": "/videos/(.*)",
       "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
       ]
     }
   ]

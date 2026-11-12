@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { ArrowRight, Loader2, Clock } from 'lucide-react';
 import { VehicleCard } from '../../ui/VehicleCard';
 import { supabase } from '../../../lib/supabase';
+import { CARD_COLUMNS } from '../../../lib/vehicleColumns';
 import type { Vehicle } from '../../../types';
 
 export function LatestVehicles() {
@@ -14,7 +15,7 @@ export function LatestVehicles() {
       try {
         const { data, error } = await supabase
           .from('vehicles')
-          .select('*')
+          .select(CARD_COLUMNS)
           .eq('em_stock', true)
           // Ordenar pela data de criação, do mais recente para o mais antigo
           .order('created_at', { ascending: false })

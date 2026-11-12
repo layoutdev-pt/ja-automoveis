@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate, Outlet } from 'react-router-dom';
 import './index.css'
 import { AuthProvider, useAuth } from './contexts/AuthContext';
@@ -11,8 +12,13 @@ import { GarageDoorSplash } from './components/ui/GarageDoorSplash'; // Animaç�
 import { Home } from './pages/Home';
 import { Stand } from './pages/Stand';
 import { VehicleDetails } from './pages/VehicleDetails';
-import { Login } from './pages/Login';
-import { Admin } from './pages/Admin';
+// Admin e Login carregam à parte: o editor de imagens (cropper) não pesa no site público.
+// Não são pré-renderizados, por isso o lazy não afeta o SSR.
+const Login = lazy(() => import('./pages/Login').then(m => ({ default: m.Login })));
+const Admin = lazy(() => import('./pages/Admin').then(m => ({ default: m.Admin })));
+const PageLoading = () => (
+  <div className="min-h-screen flex items-center justify-center bg-gray-50 text-ja-dark">A carregar...</div>
+);
 import { Importacao } from './pages/Importacao';
 import { Contactos } from './pages/Contactos';
 import { Sobre } from './pages/Sobre';
@@ -80,7 +86,7 @@ function AppShell() {
           <Route path="/stand" element={<Stand />} />
           <Route path="/stand/marca/:marca" element={<Stand />} />
           <Route path="/stand/:id" element={<VehicleDetails />} />
-          <Route path="/login" element={<Login />} />
+          <Route path="/login" element={<Suspense fallback={<PageLoading />}><Login /></Suspense>} />
           <Route path="/importacao" element={<Importacao />} />
           <Route path="/contactos" element={<Contactos />} />
           <Route path="/sobre" element={<Sobre />} />
@@ -93,7 +99,9 @@ function AppShell() {
             path="/admin"
             element={
               <ProtectedRoute>
-                <Admin />
+                <Suspense fallback={<PageLoading />}>
+                  <Admin />
+                </Suspense>
               </ProtectedRoute>
             }
           />

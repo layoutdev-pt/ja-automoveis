@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { NavLink, Link, useNavigate } from 'react-router-dom';
 import { Search, Menu, X, Loader2, ChevronRight } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { CARD_COLUMNS } from '../../lib/vehicleColumns';
 import type { Vehicle } from '../../types';
 
 export function Header() {
@@ -71,7 +72,7 @@ export function Header() {
       try {
         const { data, error, count } = await supabase
           .from('vehicles')
-          .select('*', { count: 'exact' })
+          .select(CARD_COLUMNS, { count: 'exact' })
           .eq('em_stock', true)
           .or(`marca.ilike.%${searchQuery}%,modelo.ilike.%${searchQuery}%`)
           .limit(4);

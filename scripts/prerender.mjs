@@ -20,11 +20,17 @@ if (!template.includes('<!--app-html-->') || !template.includes('<!--app-head-->
 const { vehicles, marcas } = await fetchSeoData();
 const inStock = vehicles.filter(v => v.em_stock);
 
+// Só o Stand usa os dados pré-renderizados, e só os campos dos cartões
+// (igual a src/lib/vehicleColumns.ts). O resto das páginas não leva viaturas no HTML.
+const CARD_COLUMNS = 'id,marca,modelo,versao,preco,ano,estado,quilometros,combustivel,transmissao,garantia,fotos,em_stock,em_destaque,created_at'.split(',');
+const toCard = (v) => Object.fromEntries(CARD_COLUMNS.map(k => [k, v[k] ?? null]));
+const inStockCards = inStock.map(toCard);
+
 const routes = [
-  ...STATIC_ROUTES.map(r => ({ url: r.path, data: { vehicles: inStock } })),
+  ...STATIC_ROUTES.map(r => ({ url: r.path, data: r.path === '/stand' ? { vehicles: inStockCards } : {} })),
   ...marcas.map(m => ({
     url: `/stand/marca/${slugify(m)}`,
-    data: { vehicles: inStock.filter(v => slugify(v.marca) === slugify(m)) },
+    data: { vehicles: inStockCards.filter(v => slugify(v.marca) === slugify(m)) },
   })),
   ...inStock.map(v => ({ url: `/stand/${v.id}`, data: { vehicle: v } })),
   // Biosite: pré-renderizado, mas fora do sitemap (página de entrada das redes sociais).

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { Search, SlidersHorizontal, Loader2, ChevronDown, RotateCcw } from 'lucide-react';
 import { useSearchParams, useParams } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import { CARD_COLUMNS } from '../lib/vehicleColumns';
 import { VehicleCard } from '../components/ui/VehicleCard';
 import { ScrollReveal } from '../components/ui/ScrollReveal';
 import type { Vehicle } from '../types';
@@ -203,7 +204,7 @@ export function Stand() {
       // ================= ALTERAÇÃO DE LÓGICA AQUI =================
       // Retirámos o .eq('em_stock', true) para ver todos, mas ordenamos os vendidos para o fim
       let query = supabase.from('vehicles')
-        .select('*', { count: 'exact' })
+        .select(CARD_COLUMNS, { count: 'exact' })
         .order('em_stock', { ascending: false }) // Disponíveis primeiro, Vendidos depois
         .order('created_at', { ascending: false });
 

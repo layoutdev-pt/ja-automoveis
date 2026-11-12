@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { ArrowRight, Loader2, ChevronLeft, ChevronRight } from 'lucide-react';
 import { VehicleCard } from '../../ui/VehicleCard';
 import { supabase } from '../../../lib/supabase';
+import { CARD_COLUMNS } from '../../../lib/vehicleColumns';
 import type { Vehicle } from '../../../types';
 
 export function FeaturedVehicles() {
@@ -18,7 +19,7 @@ export function FeaturedVehicles() {
   useEffect(() => {
     async function fetchVehicles() {
       try {
-        const { data, error } = await supabase.from('vehicles').select('*').eq('em_destaque', true).eq('em_stock', true).order('created_at', { ascending: false }).limit(10);
+        const { data, error } = await supabase.from('vehicles').select(CARD_COLUMNS).eq('em_destaque', true).eq('em_stock', true).order('created_at', { ascending: false }).limit(10);
         if (error) throw error;
         setFeaturedVehicles(data || []);
       } catch (error) {
