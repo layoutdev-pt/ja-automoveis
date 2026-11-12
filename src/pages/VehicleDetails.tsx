@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { 
-  ArrowLeft, Loader2, Check, ChevronLeft, ChevronRight, MessageSquare,
+  ArrowLeft, Loader2, Check, ChevronLeft, ChevronRight,
   Calendar, Gauge, Fuel, Settings2, Zap, Car, BadgeCheck, CheckCircle, XCircle,
   ShieldCheck, Video, Play, Pause
 } from 'lucide-react';
@@ -10,6 +10,8 @@ import type { Vehicle } from '../types';
 import { Seo } from '../seo/Seo';
 import { breadcrumbSchema, localBusinessSchema, vehicleSchema } from '../seo/schema';
 import { ssrData } from '../lib/ssrData';
+import { whatsappLink, vehicleWhatsappMessage } from '../lib/whatsapp';
+import { WhatsAppIcon } from '../components/ui/WhatsAppIcon';
 
 export function VehicleDetails() {
   const { id } = useParams<{ id: string }>();
@@ -494,23 +496,15 @@ export function VehicleDetails() {
                   : 'Esta viatura já foi vendida. Fale com a nossa equipa para encontrarmos um modelo idêntico e importarmos para si!'}
               </p>
               
-              <Link 
-                to="/contactos"
-                state={{ 
-                  scrollToForm: true, 
-                  assunto: vehicle.em_stock 
-                    ? `Interesse: ${vehicle.marca} ${vehicle.modelo} (${vehicle.ano})` 
-                    : `Procuro Semelhante: ${vehicle.marca} ${vehicle.modelo}` 
-                }}
-                className={`w-full flex items-center justify-center gap-2 font-bold py-4 px-6 rounded-xl transition-all duration-300 shadow-md hover:shadow-lg ${
-                  vehicle.em_stock 
-                    ? 'bg-emerald-500 hover:bg-emerald-600 text-white' 
-                    : 'bg-ja-dark hover:bg-gray-800 dark:bg-gray-800 dark:hover:bg-gray-700 text-white'
-                }`}
+              <a
+                href={whatsappLink(vehicleWhatsappMessage(vehicle))}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full flex items-center justify-center gap-2 font-bold py-4 px-6 rounded-xl transition-all duration-300 shadow-md hover:shadow-lg bg-emerald-500 hover:bg-emerald-600 text-white"
               >
-                <MessageSquare size={20} />
-                {vehicle.em_stock ? 'Falar com a Equipa' : 'Procurar Semelhante'}
-              </Link>
+                <WhatsAppIcon className="w-5 h-5" />
+                Falar com a Equipa
+              </a>
             </div>
           </div>
 

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { UploadCloud, X, Loader2, Save, FileText, Plus, Trash2, Camera, RotateCcw, Video, GripVertical } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import { optimizeImageFile, canvasToOptimizedWebp } from '../../lib/imageOptimize';
 import type { Vehicle } from '../../types';
 
 // ================= IMPORTAÇÃO DO CROPPER (HARDWARE ACCELERATED) =================
@@ -267,12 +268,14 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
       // Salvar estado para restaurar edição depois
       const cropData = cropper.getData();
       
-      cropper.getCroppedCanvas({ width: 1200, height: 900 }).toBlob((blob: Blob) => {
-        if (!blob || !cropImage) return;
-        
+      // 4:3 até 1440×1080 (1080p), sem aumentar recortes pequenos; exportado em WebP.
+      const canvas = cropper.getCroppedCanvas({ maxWidth: 1440, maxHeight: 1080, imageSmoothingQuality: 'high' });
+      canvasToOptimizedWebp(canvas).then((blob) => {
+        if (!cropImage) return;
+
         const updateState = (prev: FormImage): FormImage => ({
-          ...prev, 
-          cropBlob: blob, 
+          ...prev,
+          cropBlob: blob,
           meta: { ...prev.meta, cropData, zoom: 1, rotation: 0, panX: 0, panY: 0 }
         });
 
@@ -280,7 +283,10 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
         newGaleria[cropImage.targetIndex] = updateState(newGaleria[cropImage.targetIndex]);
         setGaleria(newGaleria);
         setCropImage(null);
-      }, 'image/jpeg', 0.9);
+      }).catch((err) => {
+        console.error('Erro ao converter recorte para WebP:', err);
+        setError('Não foi possível processar o recorte da imagem.');
+      });
     }
   };
 
@@ -298,17 +304,28 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
         let finalMasterUrl = item.masterUrl;
         let finalCropUrl = item.cropUrl;
 
+        const uploadToStorage = async (fileName: string, body: Blob, contentType: string) => {
+          const { error: uploadError } = await supabase.storage
+            .from('vehicle_images')
+            .upload(fileName, body, { contentType, cacheControl: '31536000' });
+          if (uploadError) throw uploadError;
+          return supabase.storage.from('vehicle_images').getPublicUrl(fileName).data.publicUrl;
+        };
+        const randomId = () => `${Math.random().toString(36).substring(2, 15)}_${Date.now()}`;
+
         if (item.masterFile) {
-          const ext = item.masterFile.name.split('.').pop();
-          const fileName = `master_${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${ext}`;
-          await supabase.storage.from('vehicle_images').upload(fileName, item.masterFile);
-          finalMasterUrl = supabase.storage.from('vehicle_images').getPublicUrl(fileName).data.publicUrl;
+          if (item.isVideo) {
+            // Vídeos seguem tal como estão (só as imagens são convertidas).
+            const ext = item.masterFile.name.split('.').pop();
+            finalMasterUrl = await uploadToStorage(`master_${randomId()}.${ext}`, item.masterFile, item.masterFile.type);
+          } else {
+            const webp = await optimizeImageFile(item.masterFile);
+            finalMasterUrl = await uploadToStorage(`master_${randomId()}.webp`, webp, 'image/webp');
+          }
         }
 
         if (item.cropBlob) {
-          const fileName = `crop_${Math.random().toString(36).substring(2, 15)}_${Date.now()}.jpg`;
-          await supabase.storage.from('vehicle_images').upload(fileName, item.cropBlob);
-          finalCropUrl = supabase.storage.from('vehicle_images').getPublicUrl(fileName).data.publicUrl;
+          finalCropUrl = await uploadToStorage(`crop_${randomId()}.webp`, item.cropBlob, 'image/webp');
         } else if (!finalCropUrl && finalMasterUrl) {
           finalCropUrl = finalMasterUrl; 
         }
@@ -335,10 +352,12 @@ export function VehicleForm({ onCancel, onSuccess, initialData }: VehicleFormPro
       };
 
       if (initialData) {
-        await supabase.from('vehicles').update(vehicleData).eq('id', initialData.id);
+        const { error: updateError } = await supabase.from('vehicles').update(vehicleData).eq('id', initialData.id);
+        if (updateError) throw updateError;
         // Garbage Collection Omitido por Brevidade
       } else {
-        await supabase.from('vehicles').insert([vehicleData]);
+        const { error: insertError } = await supabase.from('vehicles').insert([vehicleData]);
+        if (insertError) throw insertError;
       }
       
       onSuccess();

@@ -1,13 +1,12 @@
 import { useState } from 'react';
 import { X, ChevronRight } from 'lucide-react';
 import { WhatsAppIcon } from '../ui/WhatsAppIcon';
+import { whatsappLink } from '../../lib/whatsapp';
 
 export function WhatsAppButton() {
   const [isOpen, setIsOpen] = useState(false);
   
-  const phoneNumber = "+351 961 650 396"; // Substitui pelo número real
-  const defaultMessage = "Olá! Gostaria de obter mais informações sobre os veículos.";
-  const waLink = `https://wa.me/${phoneNumber}?text=${encodeURIComponent(defaultMessage)}`;
+  const waLink = whatsappLink("Olá! Gostaria de obter mais informações sobre os veículos.");
 
   return (
     <div className="fixed bottom-6 right-6 z-50">
